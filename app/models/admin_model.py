@@ -1,0 +1,30 @@
+from app import db
+from uuid import uuid4
+from datetime import datetime, timezone
+
+
+class Admin(db.Model):
+    admin_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
+    account_id = db.Column(db.String(255), db.ForeignKey("auth.account_id"), nullable=False)
+    branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=False)
+    admin_name = db.Column(db.String(255))
+    image = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    
+    auth = db.relationship("Auth", backref="auths")
+    branch = db.relationship("Branch", backref="branches")
+    
+    
+    def to_dict(self):
+        return {
+            "admin_id": self.admin_id,
+            "account_id": self.account_id,
+            "branch_id": self.branch_id,
+            "admin_name": self.admin_name,
+            "image": self.image,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
+
+    

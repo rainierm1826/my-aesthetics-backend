@@ -16,12 +16,12 @@ def create_branch():
             return jsonify({"status":False, "message":"branch already exist"}), 409
         
         new_address = Address(
-                region=data["region"],
-                province=data["province"],
-                city=data["city"],
-                barangay=data["barangay"],
-                lot=data["lot"],
-            )
+            region=data["region"],
+            province=data["province"],
+            city=data["city"],
+            barangay=data["barangay"],
+            lot=data["lot"],
+        )
         
         db.session.add(new_address)
         db.session.flush()

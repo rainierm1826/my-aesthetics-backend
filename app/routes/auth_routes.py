@@ -1,10 +1,13 @@
 from flask import Blueprint, request, jsonify, make_response
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required, get_jwt
 from app.models.auth_model import Auth
+from app.models.admin_model import Admin
 from app import db
+from ..helper.functions import does_exist
 
 auth_bp = Blueprint("auth", __name__)
 
+# create customer
 @auth_bp.route(rule="/sign-up", methods=["POST"])
 def sign_up():
     try:
@@ -12,12 +15,14 @@ def sign_up():
         user = Auth.query.filter_by(email=data["email"]).first()
         if user:
             return jsonify({"status":False, "message":"user already exist"}), 409
-        new_user = Auth(
+        
+        
+        new_auth = Auth(
             email=data["email"],
             password=Auth.hash_password(data["password"]),
             role_id="1"
         )
-        db.session.add(new_user)
+        db.session.add(new_auth)
         db.session.commit()
         
         return jsonify({"status":True, "message":"registered successfully", "user":new_user.to_dict()}), 201
@@ -25,6 +30,40 @@ def sign_up():
     except Exception as e:       
         return jsonify({"status": False, "message":"Internal Error", "error": str(e)}), 500
 
+# create admin
+@auth_bp.route(rule="/admin/create-admin", methods=["POST"])
+def create_admin():
+    try:
+        data = request.json
+        conflict = does_exist(Auth, "email", data["email"], "email")
+        
+        if conflict:
+            return conflict
+                
+        with db.session.begin_nested():
+            new_auth = Auth(
+                email=data["email"],
+                password=Auth.hash_password(data["password"]),
+                role_id="2"
+            )
+            db.session.add(new_auth)
+            db.session.flush()
+
+            new_admin = Admin(
+                account_id=new_auth.account_id,
+                branch_id=data["branch_id"],
+                admin_name=data["admin_name"],
+                image=data["image"]
+            )
+            db.session.add(new_admin)
+
+        db.session.commit()
+
+        return jsonify({"status":True, "message":"registered successfully", "admin":new_admin.to_dict()}), 201
+
+        
+    except Exception as e:
+        return jsonify({"status": False, "message":"Internal Error", "error": str(e)}), 500
 
 @auth_bp.route(rule="/sign-in", methods=["POST"])
 def sign_in():
