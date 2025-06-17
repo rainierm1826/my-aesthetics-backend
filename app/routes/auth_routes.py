@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, make_response
-from flask_jwt_extended import get_jwt, create_access_token, create_refresh_token, get_jwt_identity, jwt_required, get_jwt
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required, get_jwt
 from app.models.auth_model import Auth
 from app.models.admin_model import Admin
 from app.models.user_model import User
@@ -174,8 +174,6 @@ def get_user():
     try:
         identity = get_jwt_identity()
         user = Auth.query.filter_by(account_id=identity).first()
-        decoded_token = get_jwt()
-        print(decoded_token)
         return jsonify({"status": True, "user": user.to_dict()})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
