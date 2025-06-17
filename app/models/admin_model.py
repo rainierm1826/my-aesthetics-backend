@@ -20,7 +20,10 @@ class Admin(db.Model):
         return {
             "admin_id": self.admin_id,
             "account_id": self.account_id,
-            "branch_id": self.branch_id,
+            "branch": {
+                "branch_id": self.branch.branch_id,
+                "branch_name": self.branch.branch_name
+            },
             "admin_name": self.admin_name,
             "image": self.image,
             "created_at": self.created_at.isoformat(),

@@ -30,7 +30,7 @@ class User(db.Model):
             "account_id": self.account_id,
             "first_name": self.first_name,
             "last_name": self.last_name,
-            "middle_name": self.middle_name,
+            "middle_name": self.middle_initial,
             "birthday": self.birthday,
             "image": self.image,
             "created_at": self.created_at.isoformat(),
