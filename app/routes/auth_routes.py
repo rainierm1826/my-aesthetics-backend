@@ -174,6 +174,8 @@ def get_user():
     try:
         identity = get_jwt_identity()
         user = Auth.query.filter_by(account_id=identity).first()
+        decoded_token = get_jwt()
+        print(decoded_token)
         return jsonify({"status": True, "user": user.to_dict()})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

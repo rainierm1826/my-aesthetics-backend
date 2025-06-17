@@ -32,11 +32,14 @@ def create_app():
     from .routes.branch_routes import branch_bp
     from .routes.services_routes import service_bp
     from .routes.user_routes import user_bp
+    from .routes.comment_routes import comment_bp
+    
     
     
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(user_bp, url_prefix="/user")
     app.register_blueprint(branch_bp, url_prefix="/branch")
     app.register_blueprint(service_bp, url_prefix="/service")
+    app.register_blueprint(comment_bp, url_prefix="/comment")
     
     return app

@@ -11,3 +11,17 @@ class Comment(db.Model):
     
     user = db.relationship("User", backref="comments")
     
+    def to_dict(self):
+        return {
+            "comment_id": self.comment_id,
+            "comment": self.comment,
+            "user": {
+                "user_id": self.user.user_id,
+                "first_name": self.user.first_name,
+                "last_name": self.user.last_name,
+                "middle_initial": self.user.middle_initial
+            },
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat()
+        }
+    
