@@ -34,7 +34,7 @@ def create_branch():
         db.session.add(new_branch)
         db.session.commit()
             
-        return jsonify({"status":True, "message":"registered successfully", "branch":new_branch.to_dict()}), 201
+        return jsonify({"status":True, "message":"created successfully", "branch":new_branch.to_dict()}), 201
     
     except Exception as e:       
         return jsonify({"status": False, "message":"Internal Error", "error": str(e)}), 500

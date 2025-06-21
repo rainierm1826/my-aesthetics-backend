@@ -22,10 +22,29 @@ class Appointment(db.Model):
     def to_dict(self):
         return {
             "appointment_id": self.appointment_id,
-            "user_id": self.user_id,
-            "branch_id": self.branch_id,
-            "aesthetician_id": self.aesthetician_id,
-            "service_id": self.service_id,
+            "user": {
+                "user_id": self.user.user_id,
+                "first_name": self.user.first_name,
+                "last_name": self.user.last_name,
+                "middle_initial": self.user.middle_initial,
+            },
+            "branch": {
+                "branch_id": self.branch_id,
+                "branch_name":self.branch.branch_name
+            },
+            "aesthetician": {
+                "aesthetician_id": self.aesthetician.aesthetician_id,
+                "first_name": self.aesthetician.first_name,
+                "last_name": self.aesthetician.last_name,
+                "middle_initial": self.aesthetician.middle_initial,
+                "experience": self.aesthetician.experience,
+            },
+            "service": {
+                "service_id": self.service.service_id,
+                "service_name": self.service.service_name,
+                "price": self.service.price,
+                "category": self.service.category,
+            },
             "status": self.status,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()

@@ -9,7 +9,6 @@ user_bp = Blueprint("user", __name__)
 def update_user():
     try:
         data = request.json
-        
         user = User.query.filter_by(user_id=data["user_id"]).first()
         
         if not user:

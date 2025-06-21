@@ -8,11 +8,8 @@ service_bp = Blueprint("service", __name__)
 @service_bp.route(rule="/create-service", methods=["POST"])
 def create_service():
     try:
-        data = request.json
-                
+        data = request.json  
         service = Service.query.filter_by(service_name = data["service_name"]).limit(12).first()
-
-        
         if service:
             return jsonify({"status": False, "message": "Service already exist"}), 409
         

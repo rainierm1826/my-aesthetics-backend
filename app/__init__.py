@@ -33,6 +33,8 @@ def create_app():
     from .routes.services_routes import service_bp
     from .routes.user_routes import user_bp
     from .routes.comment_routes import comment_bp
+    from .routes.appointment_routes import appointment_bp
+    from .routes.aesthetician_routes import aesthetician_bp
     
     
     
@@ -41,5 +43,7 @@ def create_app():
     app.register_blueprint(branch_bp, url_prefix="/branch")
     app.register_blueprint(service_bp, url_prefix="/service")
     app.register_blueprint(comment_bp, url_prefix="/comment")
+    app.register_blueprint(aesthetician_bp, url_prefix="/aesthetician")
+    app.register_blueprint(appointment_bp, url_prefix="/appointment")
     
     return app
