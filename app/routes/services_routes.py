@@ -1,6 +1,9 @@
 from flask import Blueprint, request, jsonify
 from app.models.service_model import Service
+from app.models.branch_model import Branch
 from app import db
+from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 
 
 service_bp = Blueprint("service", __name__)
@@ -22,19 +25,45 @@ def create_service():
         )
         db.session.add(new_service)
         db.session.commit()
-        
         return jsonify({"status":True, "message":"added successfully", "branch":new_service.to_dict()}), 201
-
-        
     except Exception as e:
         return jsonify({"status": False, "message":"Internal Error", "error": str(e)}), 500
     
-
 @service_bp.route(rule="/get-services", methods=["GET"])
 def get_services():
     try:
-        services = Service.query.all()
-        return jsonify({"status": True, "message": "get successfully", "services": [service.to_dict() for service in services]}), 200
+        
+        branch = request.args.get("branch")
+        category = request.args.get("category")
+        search = request.args.get("service")
+        price = request.args.get("price")
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 12))
+        
+        services = Service.query.join(Branch, Service.branch_id == Branch.branch_id)
+        
+        if branch:
+            services = services.filter(Branch.branch_name.ilike(f"%{branch}%"))
+            
+        if category:
+            services = services.filter(func.lower(Service.category)==category.lower())
+            
+        if search:
+            services = services.filter(Service.service_name.ilike(f"%{search}%"))
+        
+        # sort
+        if price == "price_asc":
+            services = services.order_by(Service.price.asc())
+        elif price == "price_desc":
+            services = services.order_by(Service.price.desc())
+        else:
+            services = services.order_by(Service.service_name.asc())
+            
+        pagination = services.paginate(page=page, per_page=per_page, error_out=False)
+        
+        services = [service.to_dict() for service in pagination.items]
+        
+        return jsonify({"status": True, "message": "get successfully", "services": services, "total":pagination.total, "pages":pagination.pages, "has_next":pagination.has_next, "has_prev":pagination.has_prev}), 200
         
     except Exception as e:
         return jsonify({"status": False, "message":"Internal Error", "error": str(e)}), 500

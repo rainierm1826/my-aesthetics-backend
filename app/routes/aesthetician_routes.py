@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from ..models.aesthetician_model import Aesthetician
+from ..models.branch_model import Branch
+from sqlalchemy.orm import joinedload
 from ..extension import db
-from sqlalchemy.sql import func
 
 aesthetician_bp = Blueprint("aesthetician", __name__)
 
@@ -34,10 +35,37 @@ def create_aesthetician():
 @aesthetician_bp.route(rule="/get-aestheticians", methods=["GET"])
 def get_aestheticians():
     try:
-        aestheticians = Aesthetician.query.all()
+        aestheticians = Aesthetician.query.join(Branch, Aesthetician.branch_id == Branch.branch_id)
+        search = request.args.get("search")
+        experience = request.args.get("experience")
+        branch = request.args.get("branch")
+        sex = request.args.get("sex")
+        avg_rate = request.args.get("sort")
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 12))
+                
+        if search:
+            aestheticians = aestheticians.filter(Aesthetician.first_name.ilike(f"%{search}%"))
+            
+        if experience:
+            aestheticians = aestheticians.filter(Aesthetician.experience==experience)
         
-        return jsonify({"status":True, "message":"get successfully", "aesthetician": [aesthetician.to_dict() for aesthetician in aestheticians]})
-
+        if sex:
+            aestheticians = aestheticians.filter(Aesthetician.sex==sex)
+            
+        if branch:
+            aestheticians = aestheticians.filter(Branch.branch_name.ilike(f"%{branch}%"))
+        
+        # sort
+        if avg_rate == "rate_asc":
+            aestheticians = aestheticians.order_by(Aesthetician.avarage_rate.asc())
+        else:
+            aestheticians = aestheticians.order_by(Aesthetician.avarage_rate.desc())
+        
+        pagination = aestheticians.paginate(page=page, per_page=per_page, error_out=False)
+        aestheticians = [aesthetician.to_dict() for aesthetician in pagination.items]
+        
+        return jsonify({"status":True, "message":"get successfully", "aesthetician": aestheticians, "total":pagination.total, "pages":pagination.pages, "has_next":pagination.has_next, "has_prev":pagination.has_prev})
     except Exception as e:       
         return jsonify({"status": False, "message":"Internal Error", "error": str(e)}), 500
     

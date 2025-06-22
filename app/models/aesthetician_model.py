@@ -22,7 +22,10 @@ class Aesthetician(db.Model):
     def to_dict(self):
         return {
             "aesthetician_id": self.aesthetician_id,
-            "branch_id": self.branch_id,
+            "branch":{
+                "branch_id": self.branch.branch_id,
+                "branch_name": self.branch.branch_name,
+            },
             "first_name": self.first_name,
             "last_name": self.last_name,
             "middle_initial": self.middle_initial,

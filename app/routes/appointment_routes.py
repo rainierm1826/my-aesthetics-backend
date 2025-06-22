@@ -108,7 +108,6 @@ def rate_appointment():
         if not appointment:
            return jsonify({"status": False, "message": "Appointment not found or completed"}), 404
         updatable_fields = ("rating", "comment")
-        
         for field in updatable_fields:
             if field in data:
                 setattr(appointment, field, data[field])
