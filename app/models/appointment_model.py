@@ -9,6 +9,8 @@ class Appointment(db.Model):
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"))
     aesthetician_id = db.Column(db.String(255), db.ForeignKey("aesthetician.aesthetician_id"))
     service_id = db.Column(db.String(255), db.ForeignKey("service.service_id"))
+    rating = db.Column(db.Float, nullable=False, default=0.0)
+    comment = db.Column(db.Text, nullable=True)
     status = db.Column(Enum("cancelled", "completed", "pending", "waiting", name="status_enum"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
@@ -46,6 +48,8 @@ class Appointment(db.Model):
                 "category": self.service.category,
             },
             "status": self.status,
+            "rating": self.rating,
+            "comment": self.comment,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }

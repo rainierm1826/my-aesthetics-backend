@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c1b4cde63931
+Revision ID: 7464be7662b3
 Revises: 
-Create Date: 2025-06-14 15:00:49.828659
+Create Date: 2025-06-22 12:15:27.958750
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'c1b4cde63931'
+revision = '7464be7662b3'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -60,11 +60,13 @@ def upgrade():
     op.create_table('admin',
     sa.Column('admin_id', sa.String(length=255), nullable=False),
     sa.Column('account_id', sa.String(length=255), nullable=False),
+    sa.Column('branch_id', sa.String(length=255), nullable=False),
     sa.Column('admin_name', sa.String(length=255), nullable=True),
     sa.Column('image', sa.Text(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['account_id'], ['auth.account_id'], ),
+    sa.ForeignKeyConstraint(['branch_id'], ['branch.branch_id'], ),
     sa.PrimaryKeyConstraint('admin_id')
     )
     op.create_table('aesthetician',
@@ -77,6 +79,7 @@ def upgrade():
     sa.Column('image', sa.String(length=255), nullable=False),
     sa.Column('sex', sa.Enum('male', 'female', 'others', name='sex_enum'), nullable=True),
     sa.Column('experience', sa.Enum('pro', 'regular', name='experience_enum'), nullable=True),
+    sa.Column('avarage_rate', sa.Float(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['branch_id'], ['branch.branch_id'], ),
@@ -121,6 +124,8 @@ def upgrade():
     sa.Column('branch_id', sa.String(length=255), nullable=True),
     sa.Column('aesthetician_id', sa.String(length=255), nullable=True),
     sa.Column('service_id', sa.String(length=255), nullable=True),
+    sa.Column('rating', sa.Float(), nullable=False),
+    sa.Column('comment', sa.Text(), nullable=False),
     sa.Column('status', sa.Enum('cancelled', 'completed', 'pending', 'waiting', name='status_enum'), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),

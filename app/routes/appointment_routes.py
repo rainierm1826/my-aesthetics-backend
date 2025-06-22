@@ -3,6 +3,7 @@ from ..models.appointment_model import Appointment
 from ..models.user_model import User
 from ..extension import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from ..helper.functions import update_aesthetician_average_rating
 
 appointment_bp = Blueprint("appointment", __name__)
 
@@ -96,5 +97,24 @@ def delete_appointment():
         
         return jsonify({"status": True, "message":"deleted successfully"}), 200
     
+    except Exception as e:
+        return jsonify({"status": False, "message":"Internal Error", "error": str(e)}), 500
+
+@appointment_bp.route(rule="/rate-appointment", methods=["PATCH"])
+def rate_appointment():
+    try:
+        data = request.json
+        appointment = Appointment.query.filter(Appointment.appointment_id==data["appointment_id"], Appointment.status == "completed").first()
+        if not appointment:
+           return jsonify({"status": False, "message": "Appointment not found or completed"}), 404
+        updatable_fields = ("rating", "comment")
+        
+        for field in updatable_fields:
+            if field in data:
+                setattr(appointment, field, data[field])
+        db.session.commit()
+        update_aesthetician_average_rating(appointment.aesthetician.aesthetician_id)
+        return jsonify({"status": True, "message": "rate added", "appointment":appointment.to_dict()}), 200 
+        
     except Exception as e:
         return jsonify({"status": False, "message":"Internal Error", "error": str(e)}), 500

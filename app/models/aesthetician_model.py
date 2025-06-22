@@ -13,6 +13,7 @@ class Aesthetician(db.Model):
     image = db.Column(db.String(255), nullable=False)
     sex = db.Column(Enum("male", "female", "others", name="sex_enum"))
     experience = db.Column(Enum("pro", "regular", name="experience_enum"))
+    avarage_rate = db.Column(db.Float, nullable=False, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
@@ -28,6 +29,7 @@ class Aesthetician(db.Model):
             "phone_number": self.phone_number,
             "sex": self.sex,
             "experience": self.experience,
+            "avarage_rate": self.avarage_rate,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }

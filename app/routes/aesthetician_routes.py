@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from ..models.aesthetician_model import Aesthetician
 from ..extension import db
+from sqlalchemy.sql import func
 
 aesthetician_bp = Blueprint("aesthetician", __name__)
 
@@ -66,10 +67,10 @@ def delete_aesthetician():
         if not aesthetician:
             return jsonify({"status": False, "message":"aesthetician not found"}), 404
         
-        
         db.session.delete(aesthetician)
         db.session.commit()
         return jsonify({"status": True, "message":"deleted successfully"})
     except Exception as e:       
         return jsonify({"status": False, "message":"Internal Error", "error": str(e)}), 500
+
     
