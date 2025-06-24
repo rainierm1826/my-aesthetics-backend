@@ -1,9 +1,12 @@
 from flask import Blueprint, request, jsonify
 from ..models.appointment_model import Appointment
+from ..models.branch_model import Branch
+from ..models.aesthetician_model import Aesthetician
+from ..models.service_model import Service
 from ..models.user_model import User
 from ..extension import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from ..helper.functions import update_aesthetician_average_rating
+from ..helper.functions import update_average_rating
 
 appointment_bp = Blueprint("appointment", __name__)
 
@@ -107,12 +110,16 @@ def rate_appointment():
         appointment = Appointment.query.filter(Appointment.appointment_id==data["appointment_id"], Appointment.status == "completed").first()
         if not appointment:
            return jsonify({"status": False, "message": "Appointment not found or completed"}), 404
-        updatable_fields = ("rating", "comment")
+        updatable_fields = ("aesthetician_rating", "service_rating", "branch_rating", "comment")
         for field in updatable_fields:
             if field in data:
                 setattr(appointment, field, data[field])
         db.session.commit()
-        update_aesthetician_average_rating(appointment.aesthetician.aesthetician_id)
+        
+        # update rating
+        update_average_rating(Service, appointment.service_id, "service_rating", "service_id")
+        update_average_rating(Branch, appointment.branch_id, "branch_rating", "branch_id")
+        update_average_rating(Aesthetician, appointment.aesthetician_id, "aesthetician_rating", "aesthetician_id")
         return jsonify({"status": True, "message": "rate added", "appointment":appointment.to_dict()}), 200 
         
     except Exception as e:

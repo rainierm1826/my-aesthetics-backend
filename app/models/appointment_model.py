@@ -9,7 +9,9 @@ class Appointment(db.Model):
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"))
     aesthetician_id = db.Column(db.String(255), db.ForeignKey("aesthetician.aesthetician_id"))
     service_id = db.Column(db.String(255), db.ForeignKey("service.service_id"))
-    rating = db.Column(db.Float, nullable=False, default=0.0)
+    service_rating = db.Column(db.Float, nullable=False, default=0.0)
+    branch_rating = db.Column(db.Float, nullable=False, default=0.0)
+    aesthetician_rating = db.Column(db.Float, nullable=False, default=0.0)
     comment = db.Column(db.Text, nullable=True)
     status = db.Column(Enum("cancelled", "completed", "pending", "waiting", name="status_enum"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
@@ -48,7 +50,9 @@ class Appointment(db.Model):
                 "category": self.service.category,
             },
             "status": self.status,
-            "rating": self.rating,
+            "branch_rating": self.branch_rating,
+            "service_rating": self.service_rating,
+            "aesthetician_rating": self.aesthetician_rating,
             "comment": self.comment,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()

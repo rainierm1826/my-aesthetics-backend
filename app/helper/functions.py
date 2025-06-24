@@ -1,6 +1,5 @@
 from flask import jsonify
 from ..models.appointment_model import Appointment
-from ..models.aesthetician_model import Aesthetician
 from ..extension import db
 from sqlalchemy.sql import func
 
@@ -13,17 +12,13 @@ def does_exist(model, column_name, value, label):
     
     return None
 
-
-def update_aesthetician_average_rating(aesthetician_id):
-    avg_rating = db.session.query(func.avg(Appointment.rating)).filter(
-        Appointment.aesthetician_id == aesthetician_id,
-        Appointment.rating != None
+def update_average_rating(model, model_id, rating_field, foreign_key_field):
+    avg_rating = db.session.query(func.avg(getattr(Appointment, rating_field))).filter(
+        getattr(Appointment, foreign_key_field) == model_id,
+        getattr(Appointment, rating_field) != None
     ).scalar()
 
-    aesthetician = Aesthetician.query.get(aesthetician_id)
-
-    if aesthetician:
-        aesthetician.avarage_rate = round(avg_rating or 0.0, 2)  # ✅ correct field name
+    instance = db.session.get(model, model_id)
+    if instance:
+        instance.avarage_rate = round(avg_rating or 0.0, 2)
         db.session.commit()
-
-    

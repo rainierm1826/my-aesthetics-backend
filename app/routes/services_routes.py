@@ -36,7 +36,7 @@ def get_services():
         branch = request.args.get("branch")
         category = request.args.get("category")
         search = request.args.get("service")
-        price = request.args.get("price")
+        sort = request.args.get("sort")
         page = int(request.args.get("page", 1))
         per_page = int(request.args.get("per_page", 12))
         
@@ -52,12 +52,14 @@ def get_services():
             services = services.filter(Service.service_name.ilike(f"%{search}%"))
         
         # sort
-        if price == "price_asc":
+        if sort == "price_asc":
             services = services.order_by(Service.price.asc())
-        elif price == "price_desc":
+        elif sort == "price_desc":
             services = services.order_by(Service.price.desc())
+        elif sort == "avg_desc":
+            services = services.order_by(Service.avarage_rate.asc())
         else:
-            services = services.order_by(Service.service_name.asc())
+            services = services.order_by(Service.avarage_rate.desc())
             
         pagination = services.paginate(page=page, per_page=per_page, error_out=False)
         

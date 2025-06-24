@@ -7,6 +7,7 @@ class Branch(db.Model):
     address_id = db.Column(db.String(255), db.ForeignKey("address.address_id"))
     branch_name = db.Column(db.String(255), nullable=False)
     image = db.Column(db.String(255), nullable=False)
+    avarage_rate = db.Column(db.Float, nullable=False, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
@@ -17,6 +18,7 @@ class Branch(db.Model):
             "branch_id": self.branch_id,
             "branch_name": self.branch_name,
             "image": self.image,
+            "avarage_rate": self.avarage_rate,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "address": {

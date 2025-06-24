@@ -10,6 +10,7 @@ class Service(db.Model):
     price = db.Column(Float, nullable=False)
     category = db.Column(db.String(255), nullable=False)
     image = db.Column(db.Text, nullable=False)
+    avarage_rate = db.Column(db.Float, nullable=True, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
@@ -27,6 +28,7 @@ class Service(db.Model):
             "price": self.price,
             "category": self.category,
             "image": self.image,
+            "avarage_rate": self.avarage_rate,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }
