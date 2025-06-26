@@ -4,6 +4,7 @@ from ..models.branch_model import Branch
 from ..models.aesthetician_model import Aesthetician
 from ..models.service_model import Service
 from ..models.user_model import User
+from ..models.walk_in_model import WalkIn
 from ..extension import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..helper.functions import update_average_rating
@@ -15,20 +16,44 @@ appointment_bp = Blueprint("appointment", __name__)
 def create_appointment():
     try:
         data = request.json
-        identity = get_jwt_identity()
-        user = User.query.filter_by(account_id=identity).first()
-        appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status!="completed").first()
         
-        if appointment:
-            return jsonify({"status":False, "message":"one appointment at a time"}), 409
+        # for walk in customers
+        if data["walk_in"] == True:
+            new_walk_in = WalkIn(
+                first_name=data["first_name"],
+                last_name=data["last_name"],
+                middle_initial=data["middle_initial"],
+                phone_number=data["phone_number"],
+                sex=data["sex"],
+            )
+            db.session.add(new_walk_in)
+            db.session.flush()
+            
+            new_appointment = Appointment(
+                walk_in_id=new_walk_in.walk_in_id,
+                user_id=None,
+                branch_id=data["branch_id"],
+                aesthetician_id=data["aesthetician_id"],
+                service_id=data["service_id"],
+                status="waiting",
+            )
+            
+            # for authenticated customers
+        else:
+            identity = get_jwt_identity()
+            user = User.query.filter_by(account_id=identity).first()
+            appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status!="completed").first()
         
-        new_appointment = Appointment(
-            user_id=user.user_id,
-            branch_id=data["branch_id"],
-            aesthetician_id=data["aesthetician_id"],
-            service_id=data["service_id"],
-            status="waiting",
-        )
+            if appointment:
+                return jsonify({"status":False, "message":"one appointment at a time"}), 409
+            new_appointment = Appointment(
+                user_id=user.user_id,
+                walk_in_id=None,
+                branch_id=data["branch_id"],
+                aesthetician_id=data["aesthetician_id"],
+                service_id=data["service_id"],
+                status="waiting",
+            )
         
         db.session.add(new_appointment)
         db.session.commit()

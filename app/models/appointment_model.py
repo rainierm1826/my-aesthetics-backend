@@ -5,7 +5,8 @@ from sqlalchemy import Enum
 
 class Appointment(db.Model):
     appointment_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
-    user_id = db.Column(db.String(255), db.ForeignKey("user.user_id"))
+    user_id = db.Column(db.String(255), db.ForeignKey("user.user_id"), nullable=True )
+    walk_in_id = db.Column(db.String(255), db.ForeignKey("walk_in.walk_in_id"), nullable=True)
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"))
     aesthetician_id = db.Column(db.String(255), db.ForeignKey("aesthetician.aesthetician_id"))
     service_id = db.Column(db.String(255), db.ForeignKey("service.service_id"))
@@ -18,6 +19,7 @@ class Appointment(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     user = db.relationship("User", backref="appointments")
+    walk_in = db.relationship("WalkIn", backref="appointments")
     branch = db.relationship("Branch", backref="appointments")
     aesthetician = db.relationship("Aesthetician", backref="appointments")
     service = db.relationship("Service", backref="appointments")
@@ -31,7 +33,13 @@ class Appointment(db.Model):
                 "first_name": self.user.first_name,
                 "last_name": self.user.last_name,
                 "middle_initial": self.user.middle_initial,
-            },
+            } if self.user else None,
+            "walk_in": {
+                "walk_in_id": self.walk_in.walk_in_id,
+                "first_name": self.walk_in.first_name,
+                "last_name": self.walk_in.last_name,
+                "middle_initial": self.walk_in.middle_initial,
+            }if self.walk_in else None,
             "branch": {
                 "branch_id": self.branch_id,
                 "branch_name":self.branch.branch_name

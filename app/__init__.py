@@ -23,6 +23,7 @@ def create_app():
     from .models.aesthetician_model import Aesthetician
     from .models.branch_model import Branch
     from .models.user_model import User
+    from .models.walk_in_model import WalkIn
     from .models.appointment_model import Appointment
     from .models.comment_model import Comment
     from .models.service_model import Service

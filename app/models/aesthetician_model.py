@@ -2,6 +2,7 @@ from app import db
 from uuid import uuid4
 from datetime import datetime, timezone
 from sqlalchemy import CHAR, Enum
+from .base_model import sex_enum
 
 class Aesthetician(db.Model):
     aesthetician_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
@@ -11,7 +12,7 @@ class Aesthetician(db.Model):
     middle_initial = db.Column(CHAR(1))
     phone_number = db.Column(db.String(255))
     image = db.Column(db.String(255), nullable=False)
-    sex = db.Column(Enum("male", "female", "others", name="sex_enum"))
+    sex = db.Column(sex_enum)
     experience = db.Column(Enum("pro", "regular", name="experience_enum"))
     avarage_rate = db.Column(db.Float, nullable=False, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
