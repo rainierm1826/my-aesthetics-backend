@@ -2,8 +2,10 @@ from flask import jsonify
 from ..models.appointment_model import Appointment
 from ..models.service_model import Service
 from ..models.branch_model import Branch
+from ..models.aesthetician_model import Aesthetician
 from ..extension import db
 from sqlalchemy.sql import func
+from .constant import group_column
 
 
 def does_exist(model, column_name, value, label):
@@ -25,30 +27,151 @@ def update_average_rating(model, model_id, rating_field, foreign_key_field):
         instance.avarage_rate = round(avg_rating or 0.0, 2)
         db.session.commit()
 
-def filter_sales(group_by, year=None, month=None):
+def total_sales_overtime(group_by, branch=None, year=None, month=None):
+    group_field = group_column[group_by]
     
-    # Dictionary to determine how to group the data: by year, month, or day of week
-    group_column = {
-        "year": func.extract("year", Appointment.created_at),   # Groups by year (e.g., 2024)
-        "month": func.extract("month", Appointment.created_at), # Groups by month (1–12)
-        "week": func.extract("dow", Appointment.created_at),    # Groups by day of week (0=Sunday, 6=Saturday)
-    }[group_by]  # Selects the grouping based on the query parameter
-
-    
-    # Query that calculates total sales based on the chosen group
     sales = db.session.query(
-        group_column.label(group_by),            # Labels the group (year/month/week)
-        func.sum(Service.price).label("total")   # Sums all service prices under that group
-    ).join(Service).filter(Appointment.status == "completed") # Join Appointment to Service to access the price
-
-    # Optional filters based on year and/or month
+        group_field.label(group_by),
+        func.sum(Service.price).label("total")
+    ) \
+    .select_from(Appointment) \
+    .join(Service, Appointment.service_id == Service.service_id) \
+    .join(Branch, Appointment.branch_id == Branch.branch_id) \
+    .filter(Appointment.status == "completed") \
+    .group_by(group_field)
+    
     if year:
         sales = sales.filter(func.extract("year", Appointment.created_at) == year)
 
     if month:
         sales = sales.filter(func.extract("month", Appointment.created_at) == month)
+    
+    if branch:
+        sales = sales.filter(Branch.branch_name.ilike(f"%{branch}%"))
 
-    # Group the results and sort them in order
-    return sales.group_by(group_column).order_by(group_column).all()
+    return sales.group_by(group_field).order_by(group_field).all()
 
+def count_appointment_overtime(group_by, branch=None, year=None, month=None):
+    group_field = group_column[group_by]
+    
+    appointment_count = db.session.query(
+        group_field.label(group_by),
+        func.count(Appointment.appointment_id).label("count")
+    ) \
+    .select_from(Appointment) \
+    .join(Service, Appointment.service_id == Service.service_id) \
+    .join(Branch, Appointment.branch_id == Branch.branch_id) \
+    .filter(Appointment.status == "completed") \
+    .group_by(group_field)
+    
+    if year:
+        appointment_count = appointment_count.filter(func.extract("year", Appointment.created_at) == year)
 
+    if month:
+        appointment_count = appointment_count.filter(func.extract("month", Appointment.created_at) == month)
+    
+    if branch:
+        appointment_count = appointment_count.filter(Branch.branch_name.ilike(f"%{branch}%"))
+
+    return appointment_count.group_by(group_field).order_by(group_field).all()
+
+def count_status_overtime(group_by, branch=None, year=None, month=None):
+    group_field = group_column[group_by]
+    
+    appointment_count = db.session.query(
+        group_field.label(group_by),
+        func.count(Appointment.status).label("status_count")
+    ) \
+    .select_from(Appointment) \
+    .join(Branch, Appointment.branch_id == Branch.branch_id) \
+    .group_by(group_field)
+    
+    if year:
+        appointment_count = appointment_count.filter(func.extract("year", Appointment.created_at) == year)
+
+    if month:
+        appointment_count = appointment_count.filter(func.extract("month", Appointment.created_at) == month)
+    
+    if branch:
+        appointment_count = appointment_count.filter(Branch.branch_name.ilike(f"%{branch}%"))
+
+    return appointment_count.group_by(group_field).order_by(group_field).all()
+
+def service_popularity(branch=None, year=None, month=None):
+    group_field = Service.service_name
+
+    appointment_count = db.session.query(
+        group_field.label("service"),
+        func.count(Appointment.appointment_id).label("popularity_count")
+    ) \
+    .select_from(Appointment) \
+    .join(Service, Appointment.service_id == Service.service_id) \
+    .join(Branch, Appointment.branch_id == Branch.branch_id) \
+    .filter(Appointment.status == "completed") \
+    .group_by(group_field)
+    
+    if year:
+        appointment_count = appointment_count.filter(func.extract("year", Appointment.created_at) == year)
+
+    if month:
+        appointment_count = appointment_count.filter(func.extract("month", Appointment.created_at) == month)
+    
+    if branch:
+        appointment_count = appointment_count.filter(Branch.branch_name.ilike(f"%{branch}%"))
+
+    return appointment_count.group_by(group_field).order_by(group_field).all()
+
+def total_sales_service(group_by, branch=None, year=None, month=None):
+    
+    group_field = group_column[group_by]
+
+    sales = db.session.query(
+        group_field.label(group_by),
+        func.sum(Service.price).label("total")
+    ) \
+    .select_from(Appointment) \
+    .join(Service, Appointment.service_id == Service.service_id) \
+    .join(Branch, Appointment.branch_id == Branch.branch_id) \
+    .filter(Appointment.status == "completed") \
+    .group_by(group_field)
+
+    if year:
+        sales = sales.filter(func.extract("year", Appointment.created_at) == year)
+
+    if month:
+        sales = sales.filter(func.extract("month", Appointment.created_at) == month)
+    
+    if branch:
+        sales = sales.filter(Branch.branch_name.ilike(f"%{branch}%"))
+
+    return sales.group_by(group_field).order_by(group_field).all()
+
+def total_sales_aesthetician(group_by, aggregate, branch=None, year=None, month=None, limit=None):
+    group_field = group_column[group_by]
+    
+    # if aggregate == "sum":
+    #     agg_func = func.sum(Service.price)
+    # if aggregate == "count":
+    #     agg_func = func.count(Service.) 
+    
+    sales = db.session.query(
+        group_field.label(group_by),
+        func.sum(Service.price).label("total")
+    ) \
+    .select_from(Appointment) \
+    .join(Service, Appointment.service_id == Service.service_id) \
+    .join(Branch, Appointment.branch_id == Branch.branch_id) \
+    .join(Aesthetician, Appointment.aesthetician_id == Aesthetician.aesthetician_id) \
+    .filter(Appointment.status == "completed") \
+    .group_by(group_field)
+    
+    if year:
+        sales = sales.filter(func.extract("year", Appointment.created_at) == year)
+
+    if month:
+        sales = sales.filter(func.extract("month", Appointment.created_at) == month)
+    
+    if branch:
+        sales = sales.filter(Branch.branch_name.ilike(f"%{branch}%"))
+
+    return sales.group_by(group_field).order_by(group_field).limit(limit).all()
