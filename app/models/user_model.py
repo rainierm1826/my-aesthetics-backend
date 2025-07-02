@@ -18,7 +18,7 @@ class User(db.Model):
     auth = db.relationship("Auth", backref="users")
     
     @property
-    def get_age(self):
+    def age(self):
         today = datetime.now(timezone.utc).date()
         birth_date = self.birthday.date()
         return today.year-birth_date.year-((today.month, today.day) < (birth_date.month, birth_date.day))
