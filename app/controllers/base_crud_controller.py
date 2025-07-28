@@ -13,7 +13,8 @@ class BaseCRUDController:
         self.sortable_fields = sortable_fields or {}
         self.resource_name = model.__tablename__
         self.joins = joins or []
-          
+    
+    # public methods for CRUD operations
     def create(self):
         try:
             data = request.json
@@ -139,7 +140,37 @@ class BaseCRUDController:
                 "error": str(e)
             }), 500 
     
+    def get_by_id(self):
+        try:
+            data = request.json
+            if self.id_field not in data:
+                return jsonify({
+                    "status": False,
+                    "message": f"missing {self.resource_name} id"
+                }), 404
+            
+            instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+            if not instance:
+                return jsonify({
+                    "status": False,
+                    "message": f"{self.resource_name} not found"
+                }), 404
+            
+            return jsonify({
+                "status": True,
+                "message": f"{self.resource_name} retrieved successfully",
+                self.resource_name: instance.to_dict()
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                "status": False,
+                "message": "internal error",
+                "error": str(e)
+            }), 500
     
+    # private methods
     def _validate_required_fields(self, data):
         missing = [field for field in self.valid_field if not data.get(field)]
         if missing:
