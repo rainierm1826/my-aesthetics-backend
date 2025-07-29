@@ -1,6 +1,8 @@
 from flask import request, jsonify
 from ..extension import db
 from sqlalchemy import or_, asc, desc
+from flask_jwt_extended import get_jwt_identity
+from ..models.user_model import User
 
 class BaseCRUDController:
     def __init__(self, model, id_field, valid_fields=None, searchable_fields=None, filterable_fields=None, updatable_fields=None, sortable_fields=None, joins=None):
@@ -45,6 +47,7 @@ class BaseCRUDController:
                 "error": str(e)
             }), 500
     
+    # generic get all method 
     def get_all(self):
         try:
             query = self.model.query
@@ -80,32 +83,42 @@ class BaseCRUDController:
                 "message": "internal error",
                 "error": str(e)
             }), 500
-
+    
+    # generic update method
     def update(self):
-        data = request.json
-        if self.id_field not in data:
+        try:
+            data = request.json
+            if self.id_field not in data: 
+                return jsonify({
+                    "status": False,
+                    "message": f"missing {self.resource_name} id"
+                }), 404
+                
+            instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+            if not instance:
+                    return jsonify({
+                    "status": False,
+                    "message": f"{self.resource_name} not found"
+                }), 404
+            
+            for field in self.updatable_fields:
+                if field in data:
+                    setattr(instance, field, data[field])
+            db.session.commit()
+            return jsonify({
+                    "status": True,
+                    "message": f"{self.resource_name} updated successfully",
+                    self.resource_name: instance.to_dict()
+                })
+        except Exception as e:
+            db.session.rollback()
             return jsonify({
                 "status": False,
-                "message": f"missing {self.resource_name} id"
-            }), 404
-            
-        instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
-        if not instance:
-                return jsonify({
-                "status": False,
-                "message": f"{self.resource_name} not found"
-            }), 404
+                "message": "internal error",
+                "error": str(e)
+            }), 500
         
-        for field in self.updatable_fields:
-            if field in data:
-                setattr(instance, field, data[field])
-        db.session.commit()
-        return jsonify({
-                "status": True,
-                "message": f"{self.resource_name} updated successfully",
-                self.resource_name: instance.to_dict()
-            })   
-    
+    # generic delete method
     def delete(self):
         try:
             data = request.json
@@ -140,6 +153,7 @@ class BaseCRUDController:
                 "error": str(e)
             }), 500 
     
+    # get the details of the resource by id
     def get_by_id(self):
         try:
             data = request.json
@@ -170,11 +184,154 @@ class BaseCRUDController:
                 "error": str(e)
             }), 500
     
+    def create_with_auth(self):
+        try:
+            data = request.json
+            identity = get_jwt_identity()
+            user = User.query.filter_by(account_id=identity).first()
+            
+            # check if the user is authenticated
+            if not user:
+                return jsonify({
+                    "status": False,
+                    "message": f"You are not allowed to create this {self.resource_name}. Please sign in to continue"
+                }), 403
+            
+            # add the user id to the data
+            data['user_id'] = user.user_id
+            
+            # validate the required fields
+            self._validate_required_fields(data)
+            
+            # create the resource with the relationship
+            # for example, if you create a branch that has address, you can use this method to create the branch with the address
+            if hasattr(self, "_create_with_relationship"):
+                new_instance = self._create_with_relationship(data)
+            # if there is no relationship, create the resource
+            else:
+                new_instance = self.model(**data)
+                db.session.add(new_instance)
+            db.session.commit()
+            
+            return jsonify({
+                "status": True,
+                "message": f"{self.resource_name} created successfully",
+                self.resource_name: new_instance.to_dict()
+            }), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                "status": False,
+                "message": "internal error",
+                "error": str(e)
+            }), 500
+    
+    # update method with authentication. only the owner can update the resource
+    def update_with_auth(self):
+        try:
+            data = request.json
+            
+            # get the user id from the jwt token
+            identity = get_jwt_identity()
+            user = User.query.filter_by(account_id=identity).first()
+            
+            # get the instance of the resource
+            # for example if the resource_name == comment, the instance will be the comment instance
+            instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+            
+            # check if the user is authenticated and the user is the owner of the resource
+            if not self._check_auth_ownership(instance, user):
+                return jsonify({
+                    "status": False,
+                    "message": f"You are not allowed to update this {self.resource_name}"
+                }), 403
+           
+            # check if the resource is found
+            if not instance:
+                return jsonify({
+                    "status": False,
+                    "message": f"{self.resource_name} not found"
+                }), 404
+            
+            # update the resource
+            for field in self.updatable_fields:
+                if field in data:
+                    setattr(instance, field, data[field])
+                    
+            # commit the changes to the database
+            db.session.commit()
+            return jsonify({
+                    "status": True,
+                    "message": f"{self.resource_name} updated successfully",
+                    self.resource_name: instance.to_dict()
+                })
+            
+        # if there is an error, rollback the changes and return the error
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                "status": False,
+                "message": "internal error",
+                "error": str(e)
+            }), 500
+    
+    # delete method with authentication. only the owner can delete the resource
+    def delete_with_auth(self):
+        try:
+            data = request.json
+            
+            # get the user id from the jwt token
+            identity = get_jwt_identity()
+            user = User.query.filter_by(account_id=identity).first()
+            
+            # get the instance of the resource
+            # for example if the resource_name == comment, the instance will be the comment instance
+            instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+            
+            # check if the user is authenticated and the user is the owner of the resource
+            if not self._check_auth_ownership(instance, user):
+                return jsonify({
+                    "status": False,
+                    "message": f"You are not allowed to delete this {self.resource_name}"
+                }), 403
+                
+            # check if the resource is found
+            if not instance:
+                return jsonify({
+                    "status": False,
+                    "message": f"{self.resource_name} not found"
+                }), 404
+            
+            
+            # delete the resource
+            db.session.delete(instance)
+            db.session.commit()
+            return jsonify({
+                "status": True,
+                "message": f"{self.resource_name} deleted successfully"
+            }), 201
+            
+        # if there is an error, rollback the changes and return the error
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                "status": False,
+                "message": "internal error",
+                "error": str(e)
+            }), 500
+    
     # private methods
     def _validate_required_fields(self, data):
         missing = [field for field in self.valid_field if not data.get(field)]
         if missing:
             raise ValueError(f"{', '.join(missing)} is missing")
+
+    def _check_auth_ownership(self, instance, user):
+        if not user:
+            return False
+        if instance.user_id != user.user_id:
+            return False
+        return True
 
     def _apply_search(self, query):
         search = request.args.get("search")

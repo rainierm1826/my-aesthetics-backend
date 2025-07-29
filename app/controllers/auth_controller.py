@@ -56,6 +56,7 @@ class AuthController(BaseCRUDController):
         response = make_response(jsonify({
             "status": True,
             "message": "login successfully",
+            "user": auth.to_dict(),
             "access_token":access_token,
             "refresh_token":refresh_token
         }))

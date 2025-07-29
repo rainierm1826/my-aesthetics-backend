@@ -1,7 +1,6 @@
 from ..controllers.base_crud_controller import BaseCRUDController
 from ..models.aesthetician_model import Aesthetician
 from ..models.branch_model import Branch
-from flask import request, jsonify
 
 class AestheticianController(BaseCRUDController):
     def __init__(self):
