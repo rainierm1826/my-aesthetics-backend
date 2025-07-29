@@ -7,7 +7,7 @@ class CommentController(BaseCRUDController):
         super().__init__(
             model=Comment,
             id_field="comment_id",
-            valid_fields=["comment"],
+            required_fields=["comment"],
             updatable_fields=["comment"],
             joins=[(User, User.user_id==Comment.user_id)]
         )

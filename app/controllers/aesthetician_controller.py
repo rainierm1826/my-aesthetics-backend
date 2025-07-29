@@ -7,7 +7,7 @@ class AestheticianController(BaseCRUDController):
         super().__init__(
             model=Aesthetician,
             id_field="aesthetician_id",
-            valid_fields=["first_name", "last_name", "middle_initial", "phone_number", "image", "sex", "experience"],
+            required_fields=["first_name", "last_name", "middle_initial", "phone_number", "image", "sex", "experience"],
             searchable_fields=["first_name", "last_name"],
             filterable_fields={"sex": "sex", "experience": "experience", "branch": (Branch, "branch_name")},
             sortable_fields={"rate": Aesthetician.avarage_rate, "name":Aesthetician.first_name},

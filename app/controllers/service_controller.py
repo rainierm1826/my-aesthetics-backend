@@ -7,6 +7,7 @@ class ServiceController(BaseCRUDController):
         super().__init__(
             model=Service,
             id_field="service_id",
+            required_fields=["branch_id", "service_name", "price", "category", "image"],
             searchable_fields=["service"],
             filterable_fields={"category": "category", "branch": (Branch, "branch_name")},
             updatable_fields=["service_name", "branch_id", "price", "category", "image"],

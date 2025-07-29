@@ -9,7 +9,7 @@ class BranchController(BaseCRUDController):
         super().__init__(
             model=Branch,
             id_field="branch_id",
-            valid_fields=["branch_name", "image", "address"],
+            required_fields=["branch_name", "image", "address"],
             searchable_fields=["branch_name"],
             updatable_fields=["branch_name", "region", "province", "city", "barangay", "lot"],
             joins=[(Address, Address.address_id == Branch.address_id)]

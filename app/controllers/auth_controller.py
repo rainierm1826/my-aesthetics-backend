@@ -12,7 +12,7 @@ class AuthController(BaseCRUDController):
             model=Auth,
             id_field="account_id",
             updatable_fields=["password"],
-            valid_fields=["email", "password", "role_id", "branch_id", "admin_name", "image"],
+            required_fields=["email", "password", "role_id", "branch_id", "admin_name", "image"],
         )
         
     def create(self):

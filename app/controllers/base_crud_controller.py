@@ -5,10 +5,10 @@ from flask_jwt_extended import get_jwt_identity
 from ..models.user_model import User
 
 class BaseCRUDController:
-    def __init__(self, model, id_field, valid_fields=None, searchable_fields=None, filterable_fields=None, updatable_fields=None, sortable_fields=None, joins=None):
+    def __init__(self, model, id_field, required_fields=None, searchable_fields=None, filterable_fields=None, updatable_fields=None, sortable_fields=None, joins=None):
         self.model = model
         self.id_field = id_field
-        self.valid_field = valid_fields or []
+        self.required_fields = required_fields or []
         self.searchable_fields = searchable_fields or []
         self.filterable_fields = filterable_fields or {}
         self.updatable_fields = updatable_fields or []
@@ -23,6 +23,9 @@ class BaseCRUDController:
             self._validate_required_fields(data)
             if hasattr(self, "_create_with_relationship"):
                 new_instance = self._create_with_relationship(data)
+                # If the custom create returns a tuple (e.g., (response, status)), return it directly
+                if isinstance(new_instance, tuple):
+                    return new_instance
             else:
                 new_instance = self.model(**data)
                 db.session.add(new_instance)
@@ -200,7 +203,7 @@ class BaseCRUDController:
             # add the user id to the data
             data['user_id'] = user.user_id
             
-            # validate the required fields
+            # check if the required fields are present
             self._validate_required_fields(data)
             
             # create the resource with the relationship
@@ -322,7 +325,7 @@ class BaseCRUDController:
     
     # private methods
     def _validate_required_fields(self, data):
-        missing = [field for field in self.valid_field if not data.get(field)]
+        missing = [field for field in self.required_fields if not data.get(field)]
         if missing:
             raise ValueError(f"{', '.join(missing)} is missing")
 
@@ -366,6 +369,14 @@ class BaseCRUDController:
         return query
             
     def _apply_joins(self, query):
-        for model, condition in self.joins:
-            query = query.join(model, condition)
+        for join_item in self.joins:
+            if len(join_item) == 2:
+                model, condition = join_item
+                query = query.join(model, condition)
+            elif len(join_item) == 3:
+                model, condition, join_type = join_item
+                if join_type == "left":
+                    query = query.outerjoin(model, condition)
+                else:
+                    query = query.join(model, condition)
         return query
