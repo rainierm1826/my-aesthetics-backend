@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 7464be7662b3
+Revision ID: e2619dce0b2d
 Revises: 
-Create Date: 2025-06-22 12:15:27.958750
+Create Date: 2025-07-31 13:06:27.339416
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '7464be7662b3'
+revision = 'e2619dce0b2d'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -34,6 +34,26 @@ def upgrade():
     sa.Column('role_name', sa.Enum('admin', 'customer', 'owner', name='role_enum'), nullable=True),
     sa.PrimaryKeyConstraint('role_id')
     )
+    op.create_table('voucher',
+    sa.Column('voucher_id', sa.String(length=255), nullable=False),
+    sa.Column('voucher_code', sa.String(length=255), nullable=False),
+    sa.Column('discount_amount', sa.Float(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.Column('expires_at', sa.DateTime(), nullable=False),
+    sa.PrimaryKeyConstraint('voucher_id')
+    )
+    op.create_table('walk_in',
+    sa.Column('walk_in_id', sa.String(length=255), nullable=False),
+    sa.Column('first_name', sa.String(length=255), nullable=False),
+    sa.Column('last_name', sa.String(length=255), nullable=False),
+    sa.Column('middle_initial', sa.CHAR(length=1), nullable=True),
+    sa.Column('phone_number', sa.String(length=255), nullable=True),
+    sa.Column('sex', sa.Enum('male', 'female', 'others', name='sex_enum'), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.PrimaryKeyConstraint('walk_in_id')
+    )
     op.create_table('auth',
     sa.Column('account_id', sa.String(length=255), nullable=False),
     sa.Column('provider', sa.String(length=255), nullable=True),
@@ -52,6 +72,7 @@ def upgrade():
     sa.Column('address_id', sa.String(length=255), nullable=True),
     sa.Column('branch_name', sa.String(length=255), nullable=False),
     sa.Column('image', sa.String(length=255), nullable=False),
+    sa.Column('avarage_rate', sa.Float(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['address_id'], ['address.address_id'], ),
@@ -89,9 +110,13 @@ def upgrade():
     sa.Column('service_id', sa.String(length=255), nullable=False),
     sa.Column('branch_id', sa.String(length=255), nullable=False),
     sa.Column('service_name', sa.String(length=255), nullable=False),
-    sa.Column('price', sa.Float(), nullable=False),
+    sa.Column('original_price', sa.Float(), nullable=False),
+    sa.Column('is_sale', sa.Boolean(), nullable=False),
+    sa.Column('discount_percentage', sa.Float(), nullable=False),
+    sa.Column('_final_price', sa.Float(), nullable=False),
     sa.Column('category', sa.String(length=255), nullable=False),
     sa.Column('image', sa.Text(), nullable=False),
+    sa.Column('avarage_rate', sa.Float(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['branch_id'], ['branch.branch_id'], ),
@@ -121,11 +146,21 @@ def upgrade():
     op.create_table('appointment',
     sa.Column('appointment_id', sa.String(length=255), nullable=False),
     sa.Column('user_id', sa.String(length=255), nullable=True),
+    sa.Column('walk_in_id', sa.String(length=255), nullable=True),
     sa.Column('branch_id', sa.String(length=255), nullable=True),
     sa.Column('aesthetician_id', sa.String(length=255), nullable=True),
     sa.Column('service_id', sa.String(length=255), nullable=True),
-    sa.Column('rating', sa.Float(), nullable=False),
-    sa.Column('comment', sa.Text(), nullable=False),
+    sa.Column('service_rating', sa.Float(), nullable=False),
+    sa.Column('branch_rating', sa.Float(), nullable=False),
+    sa.Column('aesthetician_rating', sa.Float(), nullable=False),
+    sa.Column('service_comment', sa.Text(), nullable=True),
+    sa.Column('branch_comment', sa.Text(), nullable=True),
+    sa.Column('aesthetician_comment', sa.Text(), nullable=True),
+    sa.Column('payment_method', sa.Enum('cash', 'e_wallet', 'bank_transfer', name='payment_method_enum'), nullable=False),
+    sa.Column('voucher_id', sa.String(length=255), nullable=True),
+    sa.Column('voucher_code', sa.String(length=255), nullable=True),
+    sa.Column('original_amount', sa.Float(), nullable=False),
+    sa.Column('to_pay', sa.Float(), nullable=False),
     sa.Column('status', sa.Enum('cancelled', 'completed', 'pending', 'waiting', name='status_enum'), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
@@ -133,23 +168,15 @@ def upgrade():
     sa.ForeignKeyConstraint(['branch_id'], ['branch.branch_id'], ),
     sa.ForeignKeyConstraint(['service_id'], ['service.service_id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.user_id'], ),
+    sa.ForeignKeyConstraint(['voucher_id'], ['voucher.voucher_id'], ),
+    sa.ForeignKeyConstraint(['walk_in_id'], ['walk_in.walk_in_id'], ),
     sa.PrimaryKeyConstraint('appointment_id')
-    )
-    op.create_table('comment',
-    sa.Column('comment_id', sa.String(length=255), nullable=False),
-    sa.Column('user_id', sa.String(length=255), nullable=True),
-    sa.Column('comment', sa.Text(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['user.user_id'], ),
-    sa.PrimaryKeyConstraint('comment_id')
     )
     # ### end Alembic commands ###
 
 
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_table('comment')
     op.drop_table('appointment')
     op.drop_table('user_role')
     op.drop_table('user')
@@ -158,6 +185,8 @@ def downgrade():
     op.drop_table('admin')
     op.drop_table('branch')
     op.drop_table('auth')
+    op.drop_table('walk_in')
+    op.drop_table('voucher')
     op.drop_table('role')
     op.drop_table('address')
     # ### end Alembic commands ###

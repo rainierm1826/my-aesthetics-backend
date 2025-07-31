@@ -24,6 +24,6 @@ def get_appointments():
 def update_appointment():
     return appointment_controller.update()
 
-@appointment_bp.route("/delete-appointment", methods=["DELETE"])
+@appointment_bp.route("/", methods=["DELETE"])
 def delete_appointment():
     return appointment_controller.delete()

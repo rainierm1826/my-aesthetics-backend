@@ -13,7 +13,14 @@ class Appointment(db.Model):
     service_rating = db.Column(db.Float, nullable=False, default=0.0)
     branch_rating = db.Column(db.Float, nullable=False, default=0.0)
     aesthetician_rating = db.Column(db.Float, nullable=False, default=0.0)
-    comment = db.Column(db.Text, nullable=True)
+    service_comment = db.Column(db.Text, nullable=True)
+    branch_comment = db.Column(db.Text, nullable=True)
+    aesthetician_comment = db.Column(db.Text, nullable=True)
+    payment_method = db.Column(Enum("cash", "e_wallet", "bank_transfer", name="payment_method_enum"), nullable=False)
+    voucher_id = db.Column(db.String(255), db.ForeignKey("voucher.voucher_id"), nullable=True, default=None)
+    voucher_code = db.Column(db.String(255), nullable=True, default=None)
+    original_amount = db.Column(db.Float, nullable=False, default=0.0)
+    _to_pay = db.Column("to_pay", db.Float, nullable=False, default=0.0)
     status = db.Column(Enum("cancelled", "completed", "pending", "waiting", name="status_enum"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
@@ -23,7 +30,20 @@ class Appointment(db.Model):
     branch = db.relationship("Branch", backref="appointments")
     aesthetician = db.relationship("Aesthetician", backref="appointments")
     service = db.relationship("Service", backref="appointments")
+    voucher = db.relationship("Voucher", backref="appointments")
     
+    @property
+    def to_pay(self):
+        final_price = self.service.original_price
+        if self.aesthetician.experience == "pro":
+            final_price += self.service.original_price + 1500
+        if self.service.is_sale:
+            final_price *= (1 - self.service.discount_percentage)
+        if self.voucher:
+            final_price -= self.voucher.discount_amount
+        if self.voucher:
+            return self._to_pay - self.voucher.discount_amount
+        return final_price
     
     def to_dict(self):
         return {
@@ -61,7 +81,13 @@ class Appointment(db.Model):
             "branch_rating": self.branch_rating,
             "service_rating": self.service_rating,
             "aesthetician_rating": self.aesthetician_rating,
-            "comment": self.comment,
+            "service_comment": self.service_comment,
+            "branch_comment": self.branch_comment,
+            "aesthetician_comment": self.aesthetician_comment,
+            "payment_method": self.payment_method,
+            "voucher_id": self.voucher_id,
+            "original_amount": self.original_amount,
+            "amount_paid": self.amount_paid,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }

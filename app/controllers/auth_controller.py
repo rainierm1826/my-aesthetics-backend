@@ -5,6 +5,7 @@ from ..models.admin_model import Admin
 from flask import request, jsonify, make_response
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, get_jwt
 from ..extension import db
+from ..helper.validator import validate_required_fields
 
 class AuthController(BaseCRUDController):
     def __init__(self):
@@ -12,7 +13,7 @@ class AuthController(BaseCRUDController):
             model=Auth,
             id_field="account_id",
             updatable_fields=["password"],
-            required_fields=["email", "password", "role_id", "branch_id", "admin_name", "image"],
+            
         )
         
     def create(self):
@@ -23,19 +24,33 @@ class AuthController(BaseCRUDController):
         return super().create()
     
     # sign up customer and admin account
-    def _create_with_relationship(self, data):
+    def _custom_create(self, data):
         image = data.pop("image", None)
         branch_id = data.pop("branch_id", None)
         admin_name = data.pop("admin_name", None)
+        
+        # Validate Auth fields
+        auth_required_fields = ["email", "password", "role_id"]
+        if not validate_required_fields(data, auth_required_fields):
+            return jsonify({"status": False, "message": "missing required fields for auth"}), 400
+        
         auth = Auth(**data)
         db.session.add(auth)
         db.session.flush()
+        
         if data["role_id"] == "1":
+            # Create user account
             user = User(account_id=auth.account_id)
             db.session.add(user)
         elif data["role_id"] == "2":
+            # Validate admin fields
+            if not branch_id or not admin_name:
+                return jsonify({"status": False, "message": "missing required fields for admin: branch_id and admin_name"}), 400
+            
+            # Create admin account
             admin = Admin(account_id=auth.account_id, admin_name=admin_name, image=image, branch_id=branch_id)
             db.session.add(admin)
+        
         db.session.commit()
         return auth
     
@@ -60,7 +75,6 @@ class AuthController(BaseCRUDController):
             "access_token":access_token,
             "refresh_token":refresh_token
         }))
-        response.set_cookie("access_token", access_token, max_age=60 * 60, httponly=True, secure=False)
         response.set_cookie("refresh_token", refresh_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=False)
         return response
     

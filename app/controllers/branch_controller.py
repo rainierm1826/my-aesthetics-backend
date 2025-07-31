@@ -22,7 +22,7 @@ class BranchController(BaseCRUDController):
             return jsonify({"status": False, "message": "branch name already exist"}), 409
         return super().create()
 
-    def _create_with_relationship(self, data):
+    def _custom_create(self, data):
         address_data = data.pop("address", None)
         if address_data:
             address = Address(**address_data)
