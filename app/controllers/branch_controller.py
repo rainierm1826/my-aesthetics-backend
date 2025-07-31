@@ -11,7 +11,7 @@ class BranchController(BaseCRUDController):
             id_field="branch_id",
             required_fields=["branch_name", "image", "address"],
             searchable_fields=["branch_name"],
-            updatable_fields=["branch_name", "region", "province", "city", "barangay", "lot"],
+            updatable_fields=["branch_name", "image", "address.barangay", "address.city", "address.province", "address.region", "address.lot"],
             joins=[(Address, Address.address_id == Branch.address_id)]
         )
     
@@ -33,3 +33,21 @@ class BranchController(BaseCRUDController):
         db.session.add(branch)
         db.session.flush()  
         return branch
+
+    def _custom_update(self, data):
+        # Get the instance from the base controller
+        instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+        
+        # Handle nested address updates
+        if "address" in data and instance.address:
+            address_data = data["address"]
+            for field, value in address_data.items():
+                if hasattr(instance.address, field):
+                    setattr(instance.address, field, value)
+        
+        # Handle direct field updates (excluding nested fields)
+        for field in self.updatable_fields:
+            if field in data and "." not in field:  # Skip nested fields like "address.barangay"
+                setattr(instance, field, data[field])
+        
+        return instance

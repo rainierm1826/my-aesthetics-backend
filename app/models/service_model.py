@@ -22,7 +22,7 @@ class Service(db.Model):
     @property
     def final_price(self):
         if self.is_sale:
-            return self.original_price * (1 - self.discount_percentage)
+            return self.original_price - (self.original_price * (self.discount_percentage * .01))
         return self.original_price
     
     

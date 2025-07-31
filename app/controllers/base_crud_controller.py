@@ -1,8 +1,6 @@
 from flask import request, jsonify
 from ..extension import db
 from sqlalchemy import or_, asc, desc
-from flask_jwt_extended import get_jwt_identity
-from ..models.user_model import User
 from ..helper.validator import validate_required_fields
 
 class BaseCRUDController:
@@ -95,28 +93,38 @@ class BaseCRUDController:
     def update(self):
         try:
             data = request.json
-            if self.id_field not in data: 
-                return jsonify({
-                    "status": False,
-                    "message": f"missing {self.resource_name} id"
-                }), 404
-                
-            instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+            
+            if hasattr(self, "_custom_update"):
+                updated_instance = self._custom_update(data)
+                if isinstance(updated_instance, tuple):
+                    return updated_instance
+                elif updated_instance is not None:
+                    # If custom update returns an instance, use it
+                    instance = updated_instance
+                else:
+                    # If custom update returns None, get instance normally
+                    instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+            else:
+                # No custom update method, get instance normally
+                instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+            
             if not instance:
-                    return jsonify({
+                return jsonify({
                     "status": False,
                     "message": f"{self.resource_name} not found"
                 }), 404
             
+            # Update the fields
             for field in self.updatable_fields:
                 if field in data:
                     setattr(instance, field, data[field])
+            
             db.session.commit()
             return jsonify({
-                    "status": True,
-                    "message": f"{self.resource_name} updated successfully",
-                    self.resource_name: instance.to_dict()
-                })
+                "status": True,
+                "message": f"{self.resource_name} updated successfully",
+                self.resource_name: instance.to_dict()
+            })
         except Exception as e:
             db.session.rollback()
             return jsonify({
@@ -161,16 +169,9 @@ class BaseCRUDController:
             }), 500 
     
     # get the details of the resource by id
-    def get_by_id(self):
+    def get_by_id(self, id):
         try:
-            data = request.json
-            if self.id_field not in data:
-                return jsonify({
-                    "status": False,
-                    "message": f"missing {self.resource_name} id"
-                }), 404
-            
-            instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+            instance = self.model.query.filter(getattr(self.model, self.id_field) == id).first()
             if not instance:
                 return jsonify({
                     "status": False,
@@ -192,8 +193,10 @@ class BaseCRUDController:
             }), 500
     
     
+    
+    
+    
     # private methods
-
     def _apply_search(self, query):
         search = request.args.get("search")
         if search and self.searchable_fields:

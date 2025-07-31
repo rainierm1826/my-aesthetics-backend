@@ -6,7 +6,8 @@ from ..models.aesthetician_model import Aesthetician
 from ..extension import db
 from sqlalchemy.sql import func
 from .constant import group_column
-
+import random
+import string
 
 def does_exist(model, column_name, value, label):
     field = getattr(model, column_name)
@@ -15,6 +16,10 @@ def does_exist(model, column_name, value, label):
         return jsonify({"status":False, "message":f"{label} already exist"}), 409
     
     return None
+
+def generate_voucher_code():
+    random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    return f"aesthetics-{random_chars}"
 
 def update_average_rating(model, model_id, rating_field, foreign_key_field):
     avg_rating = db.session.query(func.avg(getattr(Appointment, rating_field))).filter(

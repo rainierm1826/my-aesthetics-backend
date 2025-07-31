@@ -8,6 +8,7 @@ from flask import jsonify
 from ..models.branch_model import Branch
 from ..models.aesthetician_model import Aesthetician
 from ..models.service_model import Service
+from ..models.voucher_model import Voucher
 from ..helper.validator import validate_required_fields
 
 class AppointmentController(BaseCRUDController):
@@ -71,6 +72,36 @@ class AppointmentController(BaseCRUDController):
         # Remove WalkIn-specific fields from data before creating appointment
         walk_in_fields = ["first_name", "last_name", "middle_initial", "phone_number", "sex"]
         appointment_data = {key: value for key, value in data.items() if key not in walk_in_fields}
+        
+        # Calculate amounts before creating appointment
+        service = Service.query.get(appointment_data["service_id"])
+        aesthetician = Aesthetician.query.get(appointment_data["aesthetician_id"])
+        
+        if not service or not aesthetician:
+            return jsonify({"status": False, "message": "service or aesthetician not found"}), 404
+        
+        # Calculate original amount (base service price)
+        original_amount = service.original_price
+        
+        # Calculate final amount with all discounts
+        final_amount = service.final_price
+        
+        # Add pro experience fee
+        if aesthetician.experience == "pro":
+            final_amount += 1500
+        
+        # Apply voucher discount if voucher exists
+        if "voucher_code" in appointment_data and appointment_data["voucher_code"]:
+            voucher = Voucher.query.filter_by(voucher_code=appointment_data["voucher_code"]).first()
+            if voucher:
+                final_amount -= voucher.discount_amount
+        
+        # Ensure amount doesn't go negative
+        final_amount = max(0, final_amount)
+        
+        # Set the calculated amounts
+        appointment_data["original_amount"] = original_amount
+        appointment_data["_amount_paid"] = final_amount
         
         new_appointment = Appointment(**appointment_data)
         db.session.add(new_appointment)
