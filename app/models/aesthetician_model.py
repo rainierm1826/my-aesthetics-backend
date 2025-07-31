@@ -15,6 +15,7 @@ class Aesthetician(db.Model):
     sex = db.Column(sex_enum)
     experience = db.Column(Enum("pro", "regular", name="experience_enum"))
     avarage_rate = db.Column(db.Float, nullable=False, default=0.0)
+    is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
