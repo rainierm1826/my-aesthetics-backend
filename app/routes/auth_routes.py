@@ -19,8 +19,8 @@ def signout():
 
 @auth_bp.route("/", methods=["GET"])
 @jwt_required()
-def get_user():
-    return auth_controller.get_user()
+def get_by_id():
+    return auth_controller.get_by_id()
 
 @auth_bp.route("/all-admin", methods=["GET"])
 @jwt_required()

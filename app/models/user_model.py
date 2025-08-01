@@ -19,6 +19,10 @@ class User(db.Model):
     
     @property
     def age(self):
+        
+        if not self.birthday:
+            return None
+        
         today = datetime.now(timezone.utc).date()
         birth_date = self.birthday.date()
         return today.year-birth_date.year-((today.month, today.day) < (birth_date.month, birth_date.day))

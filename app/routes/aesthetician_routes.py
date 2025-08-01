@@ -15,3 +15,7 @@ def get_aestheticians():
 @aesthetician_bp.route(rule="", methods=["DELETE"])
 def delete_aesthetician():
     return aesthetician_controller.delete()
+
+@aesthetician_bp.route(rule="", methods=["PATCH"])
+def update_aesthetician():
+    return aesthetician_controller.update()

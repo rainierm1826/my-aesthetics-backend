@@ -37,11 +37,13 @@ def create_app():
     from .routes.aesthetician_routes import aesthetician_bp
     from .routes.voucher_routes import voucher_bp
     from .routes.analytics_routes import analytics_bp
+    from .routes.admin_routes import admin_bp
     
     
     
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(user_bp, url_prefix="/user")
+    app.register_blueprint(admin_bp, url_prefix="/admin")
     app.register_blueprint(branch_bp, url_prefix="/branch")
     app.register_blueprint(service_bp, url_prefix="/service")
     app.register_blueprint(aesthetician_bp, url_prefix="/aesthetician")

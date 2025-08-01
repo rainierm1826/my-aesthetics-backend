@@ -96,6 +96,7 @@ class BaseCRUDController:
             
             if hasattr(self, "_custom_update"):
                 updated_instance = self._custom_update(data)
+
                 if isinstance(updated_instance, tuple):
                     return updated_instance
                 elif updated_instance is not None:

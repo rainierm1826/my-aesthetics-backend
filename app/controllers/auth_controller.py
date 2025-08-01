@@ -92,13 +92,10 @@ class AuthController(BaseCRUDController):
             return jsonify({"status": False, "message":"Internal Error", "error": str(e)}), 500
 
     # get user account
-    def get_user(self):
-        try:
-            identity = get_jwt_identity()
-            user = Auth.query.filter_by(account_id=identity).first()
-            return jsonify({"status": True, "user": user.to_dict()})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+    def get_by_id(self):
+        identity = get_jwt_identity()
+        return super().get_by_id(identity)
+
     
     # get admin account
     def get_all_admin_credentials(self):
