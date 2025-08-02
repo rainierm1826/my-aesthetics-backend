@@ -93,14 +93,6 @@
 | PATCH  | Customer, Admin, Owner | Update appointment status            |
 | DELETE | Admin, Owner           | Delete appointment                   |
 
-## 📌 `/appointment/all`
-
-### ✅ Roles & Access
-
-| Method | Who Can Access | Description         |
-| ------ | -------------- | ------------------- |
-| GET    | Admin, Owner   | Get all appointment |
-
 ### 📝 POST `/appointment` – Request Body for Walk-In
 
 | Field            | Type    | Required | Description                          |
@@ -155,3 +147,13 @@
   "aesthetician_id": "c042385c-61ba-4e3d-9b72-fc771146e985"
 }
 ```
+
+---
+
+## 📌 `/appointment/all`
+
+### ✅ Roles & Access
+
+| Method | Who Can Access | Description         |
+| ------ | -------------- | ------------------- |
+| GET    | Admin, Owner   | Get all appointment |
