@@ -1,15 +1,15 @@
-from ..models.appointment_model import Appointment
-from ..models.service_model import Service
-from ..models.aesthetician_model import Aesthetician
-from sqlalchemy.sql import func
+from sqlalchemy import Enum
 
+payment_method_enum = Enum("cash", "xendit", name="payment_method_enum")
+payment_status_enum = Enum("completed", "partial", "pending", name="payment_status_enum")
+appointment_status_enum = Enum("cancelled", "completed", "pending", "waiting", name="appointment_status_enum")
 
-group_column = {
-        "year": func.extract("year", Appointment.created_at),   
-        "month": func.extract("month", Appointment.created_at), 
-        "week": func.extract("dow", Appointment.created_at),  
-        "service": Service.service_name,
-        "category": Service.category,
-        "status": Appointment.status,
-        "aesthetician": func.concat(Aesthetician.first_name, " ", Aesthetician.last_name)
-    }
+# group_column = {
+#         "year": func.extract("year", Appointment.created_at),   
+#         "month": func.extract("month", Appointment.created_at), 
+#         "week": func.extract("dow", Appointment.created_at),  
+#         "service": Service.service_name,
+#         "category": Service.category,
+#         "status": Appointment.status,
+#         "aesthetician": func.concat(Aesthetician.first_name, " ", Aesthetician.last_name)
+#     }

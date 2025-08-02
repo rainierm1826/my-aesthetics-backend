@@ -10,6 +10,8 @@ from ..models.aesthetician_model import Aesthetician
 from ..models.service_model import Service
 from ..models.voucher_model import Voucher
 from ..helper.validator import validate_required_fields
+from sqlalchemy import func
+from datetime import date
 
 class AppointmentController(BaseCRUDController):
     def __init__(self):
@@ -17,7 +19,7 @@ class AppointmentController(BaseCRUDController):
             model=Appointment,
             id_field="appointment_id",
             filterable_fields={"status": "status", "branch": (Branch, "branch_name"), "aesthetician": (Aesthetician, "aesthetician_name"), "service": (Service, "service_name")},
-            updatable_fields=["status", "aesthetician_rating", "service_rating", "branch_rating"],
+            updatable_fields=["status", "aesthetician_rating", "service_rating", "branch_rating", "payment_status"],
             joins=[(User, User.user_id==Appointment.user_id, "left"), (WalkIn, WalkIn.walk_in_id==Appointment.walk_in_id, "left"), (Branch, Branch.branch_id==Appointment.branch_id), (Aesthetician, Aesthetician.aesthetician_id==Appointment.aesthetician_id), (Service, Service.service_id==Appointment.service_id)]
         )
 
@@ -91,29 +93,48 @@ class AppointmentController(BaseCRUDController):
             final_amount += 1500
         
         # Apply voucher discount if voucher exists
+# Apply voucher discount if voucher exists
         if "voucher_code" in appointment_data and appointment_data["voucher_code"]:
             voucher = Voucher.query.filter_by(voucher_code=appointment_data["voucher_code"]).first()
-            if voucher:
-                final_amount -= voucher.discount_amount
-                voucher.quantity -= 1
+            if not voucher:
+                return jsonify({"status": False, "message": "voucher does not exist"}), 404
+            final_amount -= voucher.discount_amount
+            voucher.quantity -= 1
+
         
         # max final amount is 0. cant be negative
         final_amount = max(0, final_amount)
         
-        # 
+    
         if is_walk_in:
-            down_payment = final_amount * 0.2
-            amount_paid = data['amount_paid'] - down_payment
+            down_payment_method = None
+            down_payment = 0 
+            to_pay = final_amount
+            payment_status = "partial"
+
         else:
-            down_payment = 0
-            amount_paid = data['amount_paid'] - down_payment
-
-
+            down_payment_method = "xendit"
+            down_payment = final_amount * 0.2
+            to_pay = final_amount - down_payment
+            payment_status = "pending"
+            
+        # Set down payment method 
+        appointment_data["down_payment_method"] = down_payment_method
+        
+        # Set appointment status
+        appointment_data["status"] = "waiting"
+        appointment_data["payment_status"] = payment_status
+        
+        
+        # Set the slot number. This resets after a day
+        next_slot = db.session.query(func.count(Appointment.appointment_id)).filter(Appointment.branch_id == appointment_data['branch_id'], Appointment.status == "waiting", func.date(Appointment.created_at) == date.today()).scalar() + 1
+        appointment_data['slot_number'] = next_slot
         
         # Set the calculated amounts
         appointment_data["original_amount"] = original_amount
-        appointment_data["_amount_paid"] = amount_paid
+        appointment_data["to_pay"] = to_pay
         appointment_data["down_payment"] = down_payment
+        
         
         new_appointment = Appointment(**appointment_data)
         db.session.add(new_appointment)

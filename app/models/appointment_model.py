@@ -1,17 +1,19 @@
 from app import db
 from uuid import uuid4
 from datetime import datetime, timezone
-from sqlalchemy import Enum
+from ..helper.constant import payment_method_enum, payment_status_enum, appointment_status_enum
 
 class Appointment(db.Model):
     appointment_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
-    
+        
     # foreign keys
     user_id = db.Column(db.String(255), db.ForeignKey("user.user_id"), nullable=True)
     walk_in_id = db.Column(db.String(255), db.ForeignKey("walk_in.walk_in_id"), nullable=True)
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=False)
     aesthetician_id = db.Column(db.String(255), db.ForeignKey("aesthetician.aesthetician_id"), nullable=False)
     service_id = db.Column(db.String(255), db.ForeignKey("service.service_id"), nullable=False)
+    
+    slot_number = db.Column(db.Integer, nullable=False)
     
     # ratings
     service_rating = db.Column(db.Float, nullable=False, default=0.0)
@@ -24,24 +26,23 @@ class Appointment(db.Model):
     aesthetician_comment = db.Column(db.Text, nullable=True)
     
     # voucher
-    voucher_code = db.Column(db.String(255), nullable=True, default=None)
+    voucher_code = db.Column(db.String(255), nullable=True, default=None) # this is a foreign key
     
     # payment
-    payment_method = db.Column(Enum("cash", "e_wallet", "bank_transfer", name="payment_method_enum"), nullable=False)
+    down_payment_method = db.Column(payment_method_enum, nullable=True)
     down_payment = db.Column(db.Float, nullable=False, default=0.0)
-    original_amount = db.Column(db.Float, nullable=False, default=0.0)
-    _amount_paid = db.Column("amount_paid", db.Float, nullable=False, default=0.0)   
-    
+    final_payment_method = db.Column(payment_method_enum, nullable=False)
+    original_amount = db.Column(db.Float, nullable=False, default=0.0) # the original price. pro aesthetician and voucher not included
+    to_pay = db.Column(db.Float, nullable=False, default=0.0) # the price you're going to pay. the pro aesthetician, voucher and down payment if applicable is already deducted  
+    payment_status = db.Column(payment_status_enum, nullable=False) # partial for dp and completed for complete payment
 
-    status = db.Column(Enum("cancelled", "completed", "pending", "waiting", name="status_enum"), nullable=False)
+
+    status = db.Column(appointment_status_enum, nullable=False)
    
    
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
-    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-    
+        
     
     # relationships
     user = db.relationship("User", backref="appointments")
@@ -50,10 +51,6 @@ class Appointment(db.Model):
     aesthetician = db.relationship("Aesthetician", backref="appointments")
     service = db.relationship("Service", backref="appointments")
     voucher = db.relationship("Voucher", primaryjoin="and_(foreign(Appointment.voucher_code)==Voucher.voucher_code, Appointment.voucher_code.isnot(None))", backref="appointments")
-    
-    @property
-    def amount_paid(self):
-        return self._amount_paid
     
     
     def to_dict(self):
@@ -95,11 +92,14 @@ class Appointment(db.Model):
             "service_comment": self.service_comment,
             "branch_comment": self.branch_comment,
             "aesthetician_comment": self.aesthetician_comment,
-            "payment_method": self.payment_method,
+            "down_payment_method": self.down_payment_method,
+            "down_payment": self.down_payment,
+            "final_payment_method": self.final_payment_method,
+            "to_pay": self.to_pay,
+            "payment_status": self.payment_status,
             "voucher_code": self.voucher_code,
             "discount_amount": self.voucher.discount_amount if self.voucher else 0.0,
             "original_amount": self.original_amount,
-            "amount_paid": self._amount_paid,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }
