@@ -1,11 +1,18 @@
-# Appointment API Documentation
+# MY Aesthetics Brow Studio API Documentation
 
 ## 📌 Endpoints Overview
 
-| Endpoint           | GET                   | POST               | PATCH              | DELETE                    |
-| ------------------ | --------------------- | ------------------ | ------------------ | ------------------------- |
-| `/appointment`     | Get all appointments  | Create appointment | -                  | -                         |
-| `/appointment/:id` | Get appointment by ID | -                  | Update appointment | Cancel/Delete appointment |
+| Endpoint                | GET                          | POST                | PATCH               | DELETE                       |
+| ----------------------- | ---------------------------- | ------------------- | ------------------- | ---------------------------- |
+| `/auth`                 | Get the current user         | -                   | -                   | -                            |
+| `/auth/all-admin`       | Get the credentials of admin | -                   | -                   | -                            |
+| `/auth/signin`          | -                            | Get access token    | -                   | -                            |
+| `/auth/update-password` | -                            | -                   | Update the password | -                            |
+| `/auth/signup`          | -                            | Create account      | -                   | -                            |
+| `/auth/delete-admin`    | -                            | -                   | -                   | Delete the admin credentials |
+| `/auth/signout`         | -                            | Remove access token | -                   | Delete appointment           |
+| `/appointment`          | -                            | Create appointment  | Update appointment  | Delete appointment           |
+| `/appointment/all`      | Get all appointments         | -                   | -                   | -                            |
 
 ---
 

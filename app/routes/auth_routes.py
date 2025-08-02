@@ -32,7 +32,7 @@ def get_all_admin_credentials():
 def update_password():
     return auth_controller.update()
 
-@auth_bp.route("/delete", methods=["DELETE"])
+@auth_bp.route("/delete-admin", methods=["DELETE"])
 @jwt_required()
 def delete_admin():
     return auth_controller.delete() # this delete the admin account only
