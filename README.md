@@ -2,18 +2,24 @@
 
 ## 📌 Endpoints Overview
 
-| Endpoint                | GET                              | POST                | PATCH               | DELETE                       |
-| ----------------------- | -------------------------------- | ------------------- | ------------------- | ---------------------------- |
-| `/auth`                 | Get the current user credentials | -                   | -                   | -                            |
-| `/auth/all-admin`       | Get the credentials of admin     | -                   | -                   | -                            |
-| `/auth/signin`          | -                                | Get access token    | -                   | -                            |
-| `/auth/update-password` | -                                | -                   | Update the password | -                            |
-| `/auth/signup`          | -                                | Create account      | -                   | -                            |
-| `/auth/delete-admin`    | -                                | -                   | -                   | Delete the admin credentials |
-| `/auth/signout`         | -                                | Remove access token | -                   | Delete appointment           |
-| `/user/`                | Get the user info                | -                   | Update user info    | -                            |
-| `/appointment`          | -                                | Create appointment  | Update appointment  | Delete appointment           |
-| `/appointment/all`      | Get all appointments             | -                   | -                   | -                            |
+| Endpoint                | GET                              | POST                | PATCH                | DELETE                       |
+| ----------------------- | -------------------------------- | ------------------- | -------------------- | ---------------------------- |
+| `/auth`                 | Get the current user credentials | -                   | -                    | -                            |
+| `/auth/all-admin`       | Get the credentials of admin     | -                   | -                    | -                            |
+| `/auth/signin`          | -                                | Get access token    | -                    | -                            |
+| `/auth/update-password` | -                                | -                   | Update the password  | -                            |
+| `/auth/signup`          | -                                | Create account      | -                    | -                            |
+| `/auth/delete-admin`    | -                                | -                   | -                    | Delete the admin credentials |
+| `/auth/signout`         | -                                | Remove access token | -                    | Delete appointment           |
+| `/user`                 | Get the current customer info    | -                   | Update customer info | -                            |
+| `/admin`                | Get the current admin info       | -                   | Update admin info    | -                            |
+| `/admin/all`            | Get all admin info               | -                   | -                    | -                            |
+| `/service`              | Get all service info             | Create service      | Update service       | Delete service               |
+| `/aesthetician`         | Get all aesthetician info        | Create aesthetician | Update aesthetician  | Delete aesthetician          |
+| `/branch`               | Get all branch info              | Create branch       | Update branch        | Delete branch                |
+| `/voucher`              | Get all voucher info             | Create voucher      | Update voucher       | Delete voucher               |
+| `/appointment`          | -                                | Create appointment  | Update appointment   | Delete appointment           |
+| `/appointment/all`      | Get all appointments             | -                   | -                    | -                            |
 
 ---
 

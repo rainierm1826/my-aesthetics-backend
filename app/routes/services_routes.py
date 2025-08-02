@@ -1,9 +1,4 @@
-from flask import Blueprint, request, jsonify
-from app.models.service_model import Service
-from app.models.branch_model import Branch
-from app import db
-from sqlalchemy.orm import joinedload
-from sqlalchemy import func
+from flask import Blueprint
 from ..controllers.service_controller import ServiceController
 
 
@@ -21,3 +16,8 @@ def get_services():
 @service_bp.route(rule="", methods=["DELETE"])
 def delete_service():
     return service_controller.delete()
+
+
+@service_bp.route(rule="", methods=["PATCH"])
+def update_service():
+    return service_controller.update()

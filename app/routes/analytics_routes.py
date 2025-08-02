@@ -50,7 +50,6 @@ def get_count_appointment_overtime():
     except Exception as e:
         return jsonify({"status": False, "message":"Internal Error", "error": str(e)}), 500
 
-
 @analytics_bp.route("/get-status-count", methods=["GET"])
 def get_count_status_overtime():
     try:
