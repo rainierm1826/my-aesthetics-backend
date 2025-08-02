@@ -2,17 +2,18 @@
 
 ## 📌 Endpoints Overview
 
-| Endpoint                | GET                          | POST                | PATCH               | DELETE                       |
-| ----------------------- | ---------------------------- | ------------------- | ------------------- | ---------------------------- |
-| `/auth`                 | Get the current user         | -                   | -                   | -                            |
-| `/auth/all-admin`       | Get the credentials of admin | -                   | -                   | -                            |
-| `/auth/signin`          | -                            | Get access token    | -                   | -                            |
-| `/auth/update-password` | -                            | -                   | Update the password | -                            |
-| `/auth/signup`          | -                            | Create account      | -                   | -                            |
-| `/auth/delete-admin`    | -                            | -                   | -                   | Delete the admin credentials |
-| `/auth/signout`         | -                            | Remove access token | -                   | Delete appointment           |
-| `/appointment`          | -                            | Create appointment  | Update appointment  | Delete appointment           |
-| `/appointment/all`      | Get all appointments         | -                   | -                   | -                            |
+| Endpoint                | GET                              | POST                | PATCH               | DELETE                       |
+| ----------------------- | -------------------------------- | ------------------- | ------------------- | ---------------------------- |
+| `/auth`                 | Get the current user credentials | -                   | -                   | -                            |
+| `/auth/all-admin`       | Get the credentials of admin     | -                   | -                   | -                            |
+| `/auth/signin`          | -                                | Get access token    | -                   | -                            |
+| `/auth/update-password` | -                                | -                   | Update the password | -                            |
+| `/auth/signup`          | -                                | Create account      | -                   | -                            |
+| `/auth/delete-admin`    | -                                | -                   | -                   | Delete the admin credentials |
+| `/auth/signout`         | -                                | Remove access token | -                   | Delete appointment           |
+| `/user/`                | Get the user info                | -                   | Update user info    | -                            |
+| `/appointment`          | -                                | Create appointment  | Update appointment  | Delete appointment           |
+| `/appointment/all`      | Get all appointments             | -                   | -                   | -                            |
 
 ---
 

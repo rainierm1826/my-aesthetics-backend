@@ -100,8 +100,8 @@ class AuthController(BaseCRUDController):
     # get admin account
     def get_all_admin_credentials(self):
         try:
-            admins = Auth.query.filter_by(role_id="2").all()
-            return jsonify({"status": True, "admin": [admin.to_dict() for admin in admins]})
+            admins_credentials = Auth.query.filter_by(role_id="2").all()
+            return jsonify({"status": True, "admin": [admin_credential.to_dict() for admin_credential in admins_credentials]})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     
