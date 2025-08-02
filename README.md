@@ -140,11 +140,40 @@
 
 ```json
 {
+  "is_walk_in": false,
   "voucher_code": "aesthetics-KL06",
   "payment_method": "cash",
   "branch_id": "5a29ff27-881e-45cd-900b-e3e6d9aa0785",
   "service_id": "e12b7e97-8c22-486d-96d1-f6351549c5af",
   "aesthetician_id": "c042385c-61ba-4e3d-9b72-fc771146e985"
+}
+```
+
+### 📝 PATCH `/voucher` – Request Body
+
+| Field            | Type   | Required | Description    |
+| ---------------- | ------ | -------- | -------------- |
+| `appointment_id` | string | ✅       | appointment id |
+
+### 📤 Example Request
+
+```json
+{
+  "appointment_id": "posjr8012-881e-45cd-900b-e3e6d9aa0785"
+}
+```
+
+### 📝 DELETE `/appointment` – Request Body
+
+| Field            | Type   | Required | Description    |
+| ---------------- | ------ | -------- | -------------- |
+| `appointment_id` | string | ✅       | appointment id |
+
+### 📤 Example Request
+
+```json
+{
+  "appointment_id": "posjr8012-881e-45cd-900b-e3e6d9aa0785"
 }
 ```
 
