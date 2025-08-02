@@ -28,6 +28,7 @@ class Appointment(db.Model):
     
     # payment
     payment_method = db.Column(Enum("cash", "e_wallet", "bank_transfer", name="payment_method_enum"), nullable=False)
+    down_payment = db.Column(db.Float, nullable=False, defualt=0.0)
     original_amount = db.Column(db.Float, nullable=False, default=0.0)
     _amount_paid = db.Column("amount_paid", db.Float, nullable=False, default=0.0)   
     
@@ -52,7 +53,6 @@ class Appointment(db.Model):
     
     @property
     def amount_paid(self):
-        """Property to get the amount_paid"""
         return self._amount_paid
     
     

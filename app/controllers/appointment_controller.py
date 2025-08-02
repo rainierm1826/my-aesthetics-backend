@@ -95,18 +95,31 @@ class AppointmentController(BaseCRUDController):
             voucher = Voucher.query.filter_by(voucher_code=appointment_data["voucher_code"]).first()
             if voucher:
                 final_amount -= voucher.discount_amount
+                voucher.quantity -= 1
         
-        # Ensure amount doesn't go negative
+        # max final amount is 0. cant be negative
         final_amount = max(0, final_amount)
+        
+        # 
+        if is_walk_in:
+            down_payment = final_amount * 0.2
+            amount_paid = data['amount_paid'] - down_payment
+        else:
+            down_payment = 0
+            amount_paid = data['amount_paid'] - down_payment
+
+
         
         # Set the calculated amounts
         appointment_data["original_amount"] = original_amount
-        appointment_data["_amount_paid"] = final_amount
+        appointment_data["_amount_paid"] = amount_paid
+        appointment_data["down_payment"] = down_payment
         
         new_appointment = Appointment(**appointment_data)
         db.session.add(new_appointment)
         db.session.commit()
         return new_appointment
+    
         
 
 

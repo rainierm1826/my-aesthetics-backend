@@ -6,6 +6,6 @@ class VoucherController(BaseCRUDController):
         super().__init__(
             model=Voucher,
             id_field="voucher_code",
-            required_fields=["discount_amount", "expires_at"],
-            updatable_fields=["discount_amount", "expires_at"],
+            required_fields=["quantity", "discount_amount", "expires_at"],
+            updatable_fields=["quantity", "discount_amount", "expires_at"],
         )
