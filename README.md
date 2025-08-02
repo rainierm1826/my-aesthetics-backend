@@ -52,6 +52,34 @@
 }
 ```
 
+### 📝 PATCH `/voucher` – Request Body
+
+| Field          | Type   | Required | Description  |
+| -------------- | ------ | -------- | ------------ |
+| `voucher_code` | string | ✅       | Voucher code |
+
+### 📤 Example Request
+
+```json
+{
+  "voucher_code": "aesthetic-OP12"
+}
+```
+
+### 📝 DELETE `/voucher` – Request Body
+
+| Field          | Type   | Required | Description  |
+| -------------- | ------ | -------- | ------------ |
+| `voucher_code` | string | ✅       | Voucher code |
+
+### 📤 Example Request
+
+```json
+{
+  "voucher_code": "aesthetic-OP12"
+}
+```
+
 ---
 
 ## 📌 `/appointment`
