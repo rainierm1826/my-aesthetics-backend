@@ -12,6 +12,7 @@ class BranchController(BaseCRUDController):
             required_fields=["branch_name", "image", "address"],
             searchable_fields=["branch_name"],
             updatable_fields=["branch_name", "image", "address.barangay", "address.city", "address.province", "address.region", "address.lot"],
+            sortable_fields={"rate": Branch.average_rate},
             joins=[(Address, Address.address_id == Branch.address_id)]
         )
     

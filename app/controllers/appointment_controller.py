@@ -19,10 +19,22 @@ class AppointmentController(BaseCRUDController):
             model=Appointment,
             id_field="appointment_id",
             filterable_fields={"status": "status", "branch": (Branch, "branch_name"), "aesthetician": (Aesthetician, "aesthetician_name"), "service": (Service, "service_name")},
-            updatable_fields=["status", "aesthetician_rating", "service_rating", "branch_rating", "payment_status"],
+            updatable_fields=["status", "aesthetician_rating", "service_rating", "branch_rating", "service_comment", "branch_comment", "aesthetician_comment", "payment_status"],
             joins=[(User, User.user_id==Appointment.user_id, "left"), (WalkIn, WalkIn.walk_in_id==Appointment.walk_in_id, "left"), (Branch, Branch.branch_id==Appointment.branch_id), (Aesthetician, Aesthetician.aesthetician_id==Appointment.aesthetician_id), (Service, Service.service_id==Appointment.service_id)]
         )
+        
 
+    def update(self):
+        response = super().update()
+        
+        # if the user update their rating. this will run and update the avarage rating in their respective column
+        self._update_average_rating(Branch, Branch.branch_id, Appointment.branch_id, Appointment.branch_rating)
+        self._update_average_rating(Service, Service.service_id, Appointment.service_id, Appointment.service_rating)
+        self._update_average_rating(Aesthetician, Aesthetician.aesthetician_id, Appointment.aesthetician_id, Appointment.aesthetician_rating)
+        
+        return response
+    
+         
     def _custom_create(self, data):
         # Walk-in logic
         if data["is_walk_in"] == True:
@@ -75,12 +87,20 @@ class AppointmentController(BaseCRUDController):
         walk_in_fields = ["first_name", "last_name", "middle_initial", "phone_number", "sex"]
         appointment_data = {key: value for key, value in data.items() if key not in walk_in_fields}
         
-        # Calculate amounts before creating appointment
         service = Service.query.get(appointment_data["service_id"])
         aesthetician = Aesthetician.query.get(appointment_data["aesthetician_id"])
         
         if not service or not aesthetician:
             return jsonify({"status": False, "message": "service or aesthetician not found"}), 404
+        
+        if aesthetician.availability != "available":
+            return jsonify({"status": False, "message": "aesthetician is not available"}), 503
+        
+        if aesthetician.branch_id != appointment_data['branch_id']:
+            return jsonify({"status": False, "message": "aesthetician is not available in this branch"}), 503
+        
+        if service.branch_id != appointment_data['branch_id']:
+            return jsonify({"status": False, "message": "service is not available in this branch"}), 503
         
         # Calculate original amount (base service price)
         original_amount = service.original_price
@@ -93,7 +113,6 @@ class AppointmentController(BaseCRUDController):
             final_amount += 1500
         
         # Apply voucher discount if voucher exists
-# Apply voucher discount if voucher exists
         if "voucher_code" in appointment_data and appointment_data["voucher_code"]:
             voucher = Voucher.query.filter_by(voucher_code=appointment_data["voucher_code"]).first()
             if not voucher:
@@ -126,6 +145,9 @@ class AppointmentController(BaseCRUDController):
         appointment_data["payment_status"] = payment_status
         
         
+        # Set the status of aesthetician
+        aesthetician.availability = "working"
+        
         # Set the slot number. This resets after a day
         next_slot = db.session.query(func.count(Appointment.appointment_id)).filter(Appointment.branch_id == appointment_data['branch_id'], Appointment.status == "waiting", func.date(Appointment.created_at) == date.today()).scalar() + 1
         appointment_data['slot_number'] = next_slot
@@ -138,10 +160,22 @@ class AppointmentController(BaseCRUDController):
         
         new_appointment = Appointment(**appointment_data)
         db.session.add(new_appointment)
-        db.session.commit()
         return new_appointment
     
+    def _update_average_rating(self, model, model_id_field, appointment_fk_field, rating_field):
+        ids = db.session.query(model_id_field).distinct().all()
         
+        for (id_val,) in ids:
+            avg_rating = db.session.query(func.avg(rating_field)).filter(
+                appointment_fk_field == id_val,
+                rating_field != None
+            ).scalar()
+
+            db.session.query(model).filter(model_id_field == id_val).update(
+                {"avarage_rate": avg_rating or 0}
+            )
+
+        db.session.commit()
 
 
                 

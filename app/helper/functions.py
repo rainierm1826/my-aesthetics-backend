@@ -2,23 +2,12 @@ from flask import jsonify
 import random
 import string
 
-def does_exist(model, column_name, value, label):
-    field = getattr(model, column_name)
-    exist = model.query.filter(field==value).first()
-    if exist:
-        return jsonify({"status":False, "message":f"{label} already exist"}), 409
-    
-    return None
 
 def generate_voucher_code():
     random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
     return f"aesthetics-{random_chars}"
 
-# def update_average_rating(model, model_id, rating_field, foreign_key_field):
-#     avg_rating = db.session.query(func.avg(getattr(Appointment, rating_field))).filter(
-#         getattr(Appointment, foreign_key_field) == model_id,
-#         getattr(Appointment, rating_field) != None
-#     ).scalar()
+
 
 #     instance = db.session.get(model, model_id)
 #     if instance:

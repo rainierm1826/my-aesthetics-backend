@@ -1,8 +1,8 @@
 from app import db
 from uuid import uuid4
 from datetime import datetime, timezone
-from sqlalchemy import CHAR, Enum
-from .base_model import sex_enum
+from sqlalchemy import CHAR
+from ..helper.constant import sex_enum, experience_enum, availability_enum
 
 class Aesthetician(db.Model):
     aesthetician_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
@@ -12,10 +12,10 @@ class Aesthetician(db.Model):
     middle_initial = db.Column(CHAR(1))
     phone_number = db.Column(db.String(255))
     image = db.Column(db.String(255), nullable=False)
-    sex = db.Column(sex_enum)
-    experience = db.Column(Enum("pro", "regular", name="experience_enum"))
-    avarage_rate = db.Column(db.Float, nullable=False, default=0.0)
-    is_active = db.Column(db.Boolean, default=True)
+    sex = db.Column(sex_enum, nullable=False)
+    experience = db.Column(experience_enum, nullable=False)
+    average_rate = db.Column(db.Float, nullable=True)
+    availability = db.Column(availability_enum, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
@@ -34,7 +34,8 @@ class Aesthetician(db.Model):
             "phone_number": self.phone_number,
             "sex": self.sex,
             "experience": self.experience,
-            "avarage_rate": self.avarage_rate,
+            "availability": self.availability,
+            "avarage_rate": self.average_rate,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }

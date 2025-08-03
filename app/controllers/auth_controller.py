@@ -73,7 +73,6 @@ class AuthController(BaseCRUDController):
             "message": "login successfully",
             "user": auth.to_dict(),
             "access_token":access_token,
-            "refresh_token":refresh_token
         }))
         response.set_cookie("refresh_token", refresh_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=False)
         return response

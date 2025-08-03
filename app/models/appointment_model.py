@@ -16,9 +16,9 @@ class Appointment(db.Model):
     slot_number = db.Column(db.Integer, nullable=False)
     
     # ratings
-    service_rating = db.Column(db.Float, nullable=False, default=0.0)
-    branch_rating = db.Column(db.Float, nullable=False, default=0.0)
-    aesthetician_rating = db.Column(db.Float, nullable=False, default=0.0)
+    service_rating = db.Column(db.Float, nullable=True)
+    branch_rating = db.Column(db.Float, nullable=True)
+    aesthetician_rating = db.Column(db.Float, nullable=True)
     
     # comments
     service_comment = db.Column(db.Text, nullable=True)
@@ -26,7 +26,7 @@ class Appointment(db.Model):
     aesthetician_comment = db.Column(db.Text, nullable=True)
     
     # voucher
-    voucher_code = db.Column(db.String(255), nullable=True, default=None) # this is a foreign key
+    voucher_code = db.Column(db.String(255), db.ForeignKey("voucher.voucher_code"), nullable=True)
     
     # payment
     down_payment_method = db.Column(payment_method_enum, nullable=True)
@@ -50,7 +50,7 @@ class Appointment(db.Model):
     branch = db.relationship("Branch", backref="appointments")
     aesthetician = db.relationship("Aesthetician", backref="appointments")
     service = db.relationship("Service", backref="appointments")
-    voucher = db.relationship("Voucher", primaryjoin="and_(foreign(Appointment.voucher_code)==Voucher.voucher_code, Appointment.voucher_code.isnot(None))", backref="appointments")
+    voucher = db.relationship("Voucher", backref="appointments")
     
     
     def to_dict(self):
@@ -70,7 +70,7 @@ class Appointment(db.Model):
             } if self.walk_in else None,
             "branch": {
                 "branch_id": self.branch_id,
-                "branch_name": self.branch.branch_name
+                "branch_name": self.branch.branch_name if self.branch.branch_id else None
             },
             "aesthetician": {
                 "aesthetician_id": self.aesthetician.aesthetician_id,
