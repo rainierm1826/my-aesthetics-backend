@@ -36,9 +36,8 @@ def create_app():
     from .routes.appointment_routes import appointment_bp
     from .routes.aesthetician_routes import aesthetician_bp
     from .routes.voucher_routes import voucher_bp
-    # from .routes.analytics_routes import analytics_bp
+    from .routes.analytic_routes import analytics_bp
     from .routes.admin_routes import admin_bp
-    
     
     
     app.register_blueprint(auth_bp, url_prefix="/auth")
@@ -48,7 +47,7 @@ def create_app():
     app.register_blueprint(service_bp, url_prefix="/service")
     app.register_blueprint(aesthetician_bp, url_prefix="/aesthetician")
     app.register_blueprint(appointment_bp, url_prefix="/appointment")
-    # app.register_blueprint(analytics_bp, url_prefix="/analytics")
+    app.register_blueprint(analytics_bp, url_prefix="/analytics")
     app.register_blueprint(voucher_bp, url_prefix="/voucher")
     
     return app

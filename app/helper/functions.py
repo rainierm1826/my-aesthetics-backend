@@ -154,10 +154,10 @@ def validate_required_fields(data, required_fields):
 # def total_sales_aesthetician(group_by, aggregate, branch=None, year=None, month=None, limit=None):
 #     group_field = group_column[group_by]
     
-#     # if aggregate == "sum":
-#     #     agg_func = func.sum(Service.price)
-#     # if aggregate == "count":
-#     #     agg_func = func.count(Service.) 
+    # if aggregate == "sum":
+    #     agg_func = func.sum(Service.price)
+    # if aggregate == "count":
+    #     agg_func = func.count(Service.) 
     
 #     sales = db.session.query(
 #         group_field.label(group_by),
