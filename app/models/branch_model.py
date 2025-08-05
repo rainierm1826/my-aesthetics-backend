@@ -1,9 +1,10 @@
 from app import db
 from uuid import uuid4
 from datetime import datetime, timezone
+from ..helper.functions import generate_id
 
 class Branch(db.Model):
-    branch_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
+    branch_id = db.Column(db.String(255), primary_key=True, default=generate_id("BRANCH"))
     address_id = db.Column(db.String(255), db.ForeignKey("address.address_id"))
     branch_name = db.Column(db.String(255), nullable=False)
     image = db.Column(db.String(255), nullable=False)

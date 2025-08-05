@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from ..extension import db
 from sqlalchemy import or_, asc, desc
-from ..helper.validator import validate_required_fields
+from ..helper.functions import validate_required_fields
 
 class BaseCRUDController:
     def __init__(self, model, id_field, required_fields=None, searchable_fields=None, filterable_fields=None, updatable_fields=None, sortable_fields=None, joins=None):

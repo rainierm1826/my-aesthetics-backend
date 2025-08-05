@@ -9,7 +9,7 @@ from ..models.branch_model import Branch
 from ..models.aesthetician_model import Aesthetician
 from ..models.service_model import Service
 from ..models.voucher_model import Voucher
-from ..helper.validator import validate_required_fields
+from ..helper.functions import validate_required_fields
 from sqlalchemy import func, asc, desc
 from datetime import date
 from flask import request

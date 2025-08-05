@@ -3,9 +3,9 @@ from ..models.auth_model import Auth
 from ..models.user_model import User
 from ..models.admin_model import Admin
 from flask import request, jsonify, make_response
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, get_jwt
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity
 from ..extension import db
-from ..helper.validator import validate_required_fields
+from ..helper.functions import validate_required_fields
 
 class AuthController(BaseCRUDController):
     def __init__(self):

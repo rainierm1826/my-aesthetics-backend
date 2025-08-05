@@ -1,10 +1,10 @@
 from app import db
-from uuid import uuid4
+from ..helper.functions import generate_id
 from datetime import datetime, timezone
 from ..helper.constant import payment_method_enum, payment_status_enum, appointment_status_enum
 
 class Appointment(db.Model):
-    appointment_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
+    appointment_id = db.Column(db.String(255), primary_key=True, default=generate_id("APPOINTMENT"))
         
     # foreign keys
     user_id = db.Column(db.String(255), db.ForeignKey("user.user_id"), nullable=True)

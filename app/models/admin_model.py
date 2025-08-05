@@ -1,10 +1,10 @@
 from ..extension import db
-from uuid import uuid4
 from datetime import datetime, timezone
+from ..helper.functions import generate_id
 
 
 class Admin(db.Model):
-    admin_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
+    admin_id = db.Column(db.String(255), primary_key=True, default=generate_id("ADMIN"))
     account_id = db.Column(db.String(255), db.ForeignKey("auth.account_id"), nullable=False)
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=False)
     admin_name = db.Column(db.String(255))

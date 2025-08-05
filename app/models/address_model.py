@@ -1,9 +1,10 @@
 from app import db
 from uuid import uuid4
 from datetime import datetime, timezone
+from ..helper.functions import generate_id
 
 class Address(db.Model):
-    address_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
+    address_id = db.Column(db.String(255), primary_key=True, default=generate_id("ADDRESS"))
     region = db.Column(db.String(255), nullable=False)
     province = db.Column(db.String(255), nullable=False)
     city = db.Column(db.String(255), nullable=False)

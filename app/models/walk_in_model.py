@@ -1,11 +1,11 @@
 from ..extension import db
-from uuid import uuid4
 from datetime import datetime, timezone
 from sqlalchemy import CHAR
 from ..helper.constant import sex_enum
+from ..helper.functions import generate_id
 
 class WalkIn(db.Model):
-    walk_in_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
+    walk_in_id = db.Column(db.String(255), primary_key=True, default=generate_id("MY"))
     first_name = db.Column(db.String(255), nullable=False)
     last_name = db.Column(db.String(255), nullable=False)
     middle_initial = db.Column(CHAR(1))
@@ -13,8 +13,6 @@ class WalkIn(db.Model):
     sex = db.Column(sex_enum)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
-    
-    
     
     
     def to_dict(self):

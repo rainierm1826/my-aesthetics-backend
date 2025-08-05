@@ -1,11 +1,29 @@
 from flask import jsonify
 import random
 import string
+from datetime import datetime, timezone
 
 
 def generate_voucher_code():
     random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
     return f"aesthetics-{random_chars}"
+
+def generate_id(prefix):
+    year = datetime.now(timezone.utc).strftime("%y")  # Last two digits of the year
+    random_number = ''.join(random.choices("0123456789", k=5))  # 4-digit random number
+    return f"{prefix}-{year}-{random_number}" # example: MY-25-1524
+
+def generate_otp():
+    return ''.join(random.choices("0123456789", k=6))
+
+
+def validate_required_fields(data, required_fields):
+    for field in required_fields:
+        if field not in data:
+            return False
+    return True
+
+    
 
 
 

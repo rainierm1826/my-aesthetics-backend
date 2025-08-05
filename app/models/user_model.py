@@ -1,10 +1,10 @@
 from app import db
-from uuid import uuid4
+from ..helper.functions import generate_id
 from datetime import datetime, timezone
 from sqlalchemy import CHAR
 
 class User(db.Model):
-    user_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
+    user_id = db.Column(db.String(255), primary_key=True, default=generate_id("MY"))
     account_id = db.Column(db.String(255), db.ForeignKey("auth.account_id"), nullable=False)
     first_name = db.Column(db.String(255))
     last_name = db.Column(db.String(255))
