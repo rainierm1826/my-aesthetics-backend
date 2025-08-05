@@ -1,9 +1,9 @@
 from app import db
-from sqlalchemy import Enum
+from ..helper.constant import role_enum
 
 class Role(db.Model):
     role_id = db.Column(db.String(255), primary_key=True, default="")
-    role_name = db.Column(Enum("admin", "customer", "owner", name="role_enum"))
+    role_name = db.Column(role_enum, nullable=False)
     
     def to_dict(self):
         return {

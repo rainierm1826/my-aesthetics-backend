@@ -1,6 +1,7 @@
 from flask import Blueprint
 from ..controllers.auth_controller import AuthController
 from flask_jwt_extended import jwt_required
+from ..helper.decorators import access_control
 
 auth_bp = Blueprint("auth", __name__)
 auth_controller = AuthController()
@@ -24,6 +25,7 @@ def get_by_id():
 
 @auth_bp.route("/all-admin", methods=["GET"])
 @jwt_required()
+@access_control("admin", "owner")
 def get_all_admin_credentials():
     return auth_controller.get_all_admin_credentials()
 
@@ -34,6 +36,7 @@ def update_password():
 
 @auth_bp.route("/delete-admin", methods=["DELETE"])
 @jwt_required()
+@access_control("owner")
 def delete_admin():
     return auth_controller.delete() # this delete the admin account only
 

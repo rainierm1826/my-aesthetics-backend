@@ -1,11 +1,15 @@
 from flask import Blueprint
 from app.controllers.voucher_controller import VoucherController
+from ..helper.decorators import access_control
+from flask_jwt_extended import jwt_required
 
 voucher_bp = Blueprint("voucher_bp", __name__)
 voucher_controller = VoucherController()
 
 
 @voucher_bp.route("", methods=["POST"])
+@jwt_required()
+@access_control("admin", "owner")
 def create_voucher():
     return voucher_controller.create()
 
@@ -16,9 +20,13 @@ def get_vouchers():
 
 
 @voucher_bp.route("", methods=["PATCH"])
+@jwt_required()
+@access_control("admin", "owner")
 def update_voucher():
     return voucher_controller.update()
 
 @voucher_bp.route("", methods=["DELETE"])
+@jwt_required()
+@access_control("admin", "owner")
 def delete_voucher():
     return voucher_controller.delete()

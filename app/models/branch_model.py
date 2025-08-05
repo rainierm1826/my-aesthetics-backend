@@ -1,5 +1,4 @@
 from app import db
-from uuid import uuid4
 from datetime import datetime, timezone
 from ..helper.functions import generate_id
 
