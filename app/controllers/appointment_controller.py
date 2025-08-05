@@ -24,16 +24,33 @@ class AppointmentController(BaseCRUDController):
         )
         
 
-    def update(self):
-        response = super().update()
+    def _custom_update(self, data):
+    # Fetch the appointment being updated
+        appointment = Appointment.query.get(data["appointment_id"])
         
-        # if the user update their rating. this will run and update the avarage rating in their respective column
-        self._update_average_rating(Branch, Branch.branch_id, Appointment.branch_id, Appointment.branch_rating)
-        self._update_average_rating(Service, Service.service_id, Appointment.service_id, Appointment.service_rating)
-        self._update_average_rating(Aesthetician, Aesthetician.aesthetician_id, Appointment.aesthetician_id, Appointment.aesthetician_rating)
+        # Use aesthetician_id from data if available, otherwise from appointment
+        aesthetician_id = data.get("aesthetician_id") or appointment.aesthetician_id
+        aesthetician = Aesthetician.query.get(aesthetician_id)
+
+        if data.get("status") == "completed":
+            data["payment_status"] = "completed"
+            data["status"] = "completed"
+            if aesthetician:
+                aesthetician.availability = "available"
+
+        if data.get("branch_rate"):
+            self._update_average_rating(Branch, Branch.branch_id, appointment.branch_id, appointment.branch_rating)
+
+        if data.get("service_rate"):
+            self._update_average_rating(Service, Service.service_id, appointment.service_id, appointment.service_rating)
+
+        if data.get("aesthetician_rate"):
+            self._update_average_rating(Aesthetician, Aesthetician.aesthetician_id, appointment.aesthetician_id, appointment.aesthetician_rating)
         
-        return response
-    
+        
+        db.session.commit()
+        return appointment
+
          
     def _custom_create(self, data):
         # Walk-in logic
@@ -64,7 +81,7 @@ class AppointmentController(BaseCRUDController):
             return new_appointment
     
     def _create_walk_in(self, data):
-        required_fields = ["first_name", "last_name", "middle_initial", "phone_number", "sex"]
+        required_fields = ["first_name", "last_name", "middle_initial", "phone_number", "sex", "final_payment_method"]
         if not validate_required_fields(data, required_fields):
             return jsonify({"status": False, "message": "missing required fields"}), 400
         
