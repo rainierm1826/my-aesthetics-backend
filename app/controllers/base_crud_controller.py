@@ -195,8 +195,6 @@ class BaseCRUDController:
     
     
     
-    
-    
     # private methods
     def _apply_search(self, query):
         search = request.args.get("search")

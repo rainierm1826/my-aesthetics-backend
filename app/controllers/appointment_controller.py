@@ -10,8 +10,9 @@ from ..models.aesthetician_model import Aesthetician
 from ..models.service_model import Service
 from ..models.voucher_model import Voucher
 from ..helper.validator import validate_required_fields
-from sqlalchemy import func
+from sqlalchemy import func, asc, desc
 from datetime import date
+from flask import request
 
 class AppointmentController(BaseCRUDController):
     def __init__(self):
@@ -22,7 +23,18 @@ class AppointmentController(BaseCRUDController):
             updatable_fields=["status", "aesthetician_rating", "service_rating", "branch_rating", "service_comment", "branch_comment", "aesthetician_comment", "payment_status"],
             joins=[(User, User.user_id==Appointment.user_id, "left"), (WalkIn, WalkIn.walk_in_id==Appointment.walk_in_id, "left"), (Branch, Branch.branch_id==Appointment.branch_id), (Aesthetician, Aesthetician.aesthetician_id==Appointment.aesthetician_id), (Service, Service.service_id==Appointment.service_id)]
         )
-        
+    
+    
+    def _apply_filters(self, query):
+        query = super()._apply_filters(query)
+
+        identity = get_jwt_identity()
+        user = User.query.filter_by(account_id=identity).first()
+        if not user:
+            raise Exception("User not found")
+        return query.filter(Appointment.user_id == user.user_id)
+    
+    
 
     def _custom_update(self, data):
     # Fetch the appointment being updated

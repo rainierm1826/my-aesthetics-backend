@@ -15,10 +15,10 @@ def create_appointment():
 def get_appointments():
     return appointment_controller.get_all()
 
-# @appointment_bp.route("/", methods=["GET"])
-# @jwt_required()
-# def get_appointment():
-#     return controller.get_by_user()
+@appointment_bp.route("/", methods=["GET"])
+@jwt_required()
+def get_appointment():
+    return appointment_controller.get_all()
 
 @appointment_bp.route("/", methods=["PATCH"])
 def update_appointment():
