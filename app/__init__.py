@@ -3,11 +3,16 @@ from .extension import db, jwt, migrate
 from flask_cors import CORS
 from .config import Config
 import os
+import xendit
+from dotenv import load_dotenv
+
 
 def create_app():
+    load_dotenv()
     app = Flask(__name__)
     app.config.from_object(Config)
-    
+    xendit.set_api_key(os.getenv("XENDIT_API_KEY"))
+
     db.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)

@@ -8,19 +8,23 @@ branch_bp = Blueprint("branch", __name__)
 branch_controller = BranchController()
 
 @branch_bp.route(rule="", methods=["GET"])
-@jwt_required()
-@access_control("admin", "owner")
 def get_branches():
     return branch_controller.get_all()
 
 @branch_bp.route("/", methods=["POST"])
+# @jwt_required()
+# @access_control("owner")
 def create_branch():
     return branch_controller.create()
 
 @branch_bp.route("/", methods=["DELETE"])
+# @jwt_required()
+# @access_control("owner")
 def delete_branch():
     return branch_controller.delete()
 
 @branch_bp.route("/", methods=["PATCH"])
+# @jwt_required()
+# @access_control("owner")
 def update_branch():
     return branch_controller.update()
