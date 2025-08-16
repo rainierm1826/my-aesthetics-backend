@@ -7,6 +7,7 @@ class Service(db.Model):
     service_id = db.Column(db.String(255), primary_key=True, default=generate_id("SERVICE"))
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=True)
     service_name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
     original_price = db.Column(Float, nullable=False)
     is_sale = db.Column(db.Boolean, nullable=False, default=False)
     discount_percentage = db.Column(Float, nullable=False, default=0.0)

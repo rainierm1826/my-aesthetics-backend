@@ -1,6 +1,7 @@
 from app import db
 from datetime import datetime, timezone
 from ..helper.functions import generate_id
+from ..helper.constant import branch_status_enum
 
 class Branch(db.Model):
     branch_id = db.Column(db.String(255), primary_key=True, default=generate_id("BRANCH"))
@@ -8,6 +9,7 @@ class Branch(db.Model):
     branch_name = db.Column(db.String(255), nullable=False)
     image = db.Column(db.String(255), nullable=False)
     average_rate = db.Column(db.Float, nullable=False, default=0.0)
+    status = db.Column(branch_status_enum, nullable=False, default="active")
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
