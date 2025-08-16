@@ -45,6 +45,7 @@ class BaseCRUDController:
                 "error": str(e)
             }), 400
         except Exception as e:
+            print(str(e))
             db.session.rollback()
             return jsonify({
                 "status": False,
@@ -138,6 +139,7 @@ class BaseCRUDController:
     def delete(self):
         try:
             data = request.json
+            print(data)
             
             if self.id_field not in data:
                 return jsonify({

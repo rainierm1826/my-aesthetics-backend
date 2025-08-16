@@ -15,7 +15,6 @@ def create_app():
     jwt.init_app(app)
     migrate.init_app(app, db)
 
-    
     CORS(app, origins=os.getenv("FRONTEND_URL"), supports_credentials=True)
 
     from .models.role_model import Role

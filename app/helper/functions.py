@@ -1,3 +1,4 @@
+import uuid
 from flask import jsonify
 import random
 import string
@@ -9,9 +10,9 @@ def generate_voucher_code():
     return f"aesthetics-{random_chars}"
 
 def generate_id(prefix):
-    year = datetime.now(timezone.utc).strftime("%y")  # Last two digits of the year
-    random_number = ''.join(random.choices("0123456789", k=5))  # 4-digit random number
-    return f"{prefix}-{year}-{random_number}" # example: MY-25-1524
+    year = datetime.now(timezone.utc).strftime("%y")  
+    unique_part = str(uuid.uuid4()).replace('-', '')[:12]
+    return f"{prefix}-{year}-{unique_part}"
 
 def generate_otp():
     return ''.join(random.choices("0123456789", k=6))
