@@ -21,6 +21,7 @@ class Branch(db.Model):
             "branch_name": self.branch_name,
             "image": self.image,
             "avarage_rate": self.average_rate,
+            "status": self.status,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "address": {
