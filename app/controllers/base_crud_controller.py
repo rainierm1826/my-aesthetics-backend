@@ -67,7 +67,7 @@ class BaseCRUDController:
             query = self._apply_sorting(query)
             
             page = int(request.args.get("page", 1))
-            per_page = int(request.args.get("per_page", 12))
+            per_page = int(request.args.get("limit", 12))
             
             pagination = query.paginate(page=page, per_page=per_page, error_out=False)
             items = [item.to_dict() for item in pagination.items]
@@ -201,10 +201,13 @@ class BaseCRUDController:
     def _apply_search(self, query):
         search = request.args.get("search")
         if search and self.searchable_fields:
-            search_conditions = []
-            for field in self.filterable_fields:
-                search_conditions.append(getattr(self.model, field).ilike(f"%{search}%"))
-            query = query.filter(or_(search_conditions))
+            search_conditions = [
+                getattr(self.model, field).ilike(f"%{search}%")
+                for field in self.searchable_fields
+                if hasattr(self.model, field) 
+            ]
+            if search_conditions: 
+                query = query.filter(or_(*search_conditions))
         return query
     
     def _apply_filters(self, query):
