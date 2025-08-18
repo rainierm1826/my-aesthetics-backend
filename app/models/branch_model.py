@@ -4,7 +4,7 @@ from ..helper.functions import generate_id
 from ..helper.constant import branch_status_enum
 
 class Branch(db.Model):
-    branch_id = db.Column(db.String(255), primary_key=True, default=generate_id("BRANCH"))
+    branch_id = db.Column(db.String(255), primary_key=True, default=lambda: generate_id("ADDRESS"))
     address_id = db.Column(db.String(255), db.ForeignKey("address.address_id"))
     branch_name = db.Column(db.String(255), nullable=False)
     image = db.Column(db.Text, nullable=False)
