@@ -199,7 +199,7 @@ class BaseCRUDController:
     
     # private methods
     def _apply_search(self, query):
-        search = request.args.get("search")
+        search = request.args.get("query")
         if search and self.searchable_fields:
             search_conditions = [
                 getattr(self.model, field).ilike(f"%{search}%")
