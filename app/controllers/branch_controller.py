@@ -20,7 +20,7 @@ class BranchController(BaseCRUDController):
         try:
             result = db.session.query(Branch.branch_id, Branch.branch_name).all()
             branches = [{"branch_id": branch.branch_id, "branch_name": branch.branch_name } for branch in result]
-            response = {"status": True, "message": "Retrieved successfully", 'branches': branches}
+            response = {"status": True, "message": "Retrieved successfully", 'branch': branches}
             return jsonify(response)
         except Exception as e:
             return jsonify({"status": False, "message": "Internal Error", "error": str(e)})
