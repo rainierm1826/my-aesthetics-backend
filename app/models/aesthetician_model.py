@@ -5,16 +5,16 @@ from sqlalchemy import CHAR
 from ..helper.constant import sex_enum, experience_enum, availability_enum
 
 class Aesthetician(db.Model):
-    aesthetician_id = db.Column(db.String(255), primary_key=True, default=generate_id("AESTHETICIAN"))
+    aesthetician_id = db.Column(db.String(255), primary_key=True, default=lambda: generate_id("AESTHETICIAN"))
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=False)
     first_name = db.Column(db.String(255), nullable=False)
     last_name = db.Column(db.String(255), nullable=False)
     middle_initial = db.Column(CHAR(1))
     phone_number = db.Column(db.String(255))
-    image = db.Column(db.String(255), nullable=False)
+    image = db.Column(db.Text, nullable=False)
     sex = db.Column(sex_enum, nullable=False)
     experience = db.Column(experience_enum, nullable=False)
-    average_rate = db.Column(db.Float, nullable=True)
+    average_rate = db.Column(db.Float, nullable=True, default=0)
     availability = db.Column(availability_enum, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
@@ -35,7 +35,8 @@ class Aesthetician(db.Model):
             "sex": self.sex,
             "experience": self.experience,
             "availability": self.availability,
-            "avarage_rate": self.average_rate,
+            "average_rate": self.average_rate,
+            "image": self.image,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }
