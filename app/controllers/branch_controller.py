@@ -15,7 +15,16 @@ class BranchController(BaseCRUDController):
             sortable_fields={"rate": Branch.average_rate},
             joins=[(Address, Address.address_id == Branch.address_id)]
         )
-    
+        
+    def get_branch_name(self):
+        try:
+            result = db.session.query(Branch.branch_id, Branch.branch_name).all()
+            branches = [{"branch_id": branch.branch_id, "branch_name": branch.branch_name } for branch in result]
+            response = {"status": True, "message": "Retrieved successfully", 'branches': branches}
+            return jsonify(response)
+        except Exception as e:
+            return jsonify({"status": False, "message": "Internal Error", "error": str(e)})
+        
     def create(self):
         data = request.json
         branch = Branch.query.filter_by(branch_name=data["branch_name"]).first()

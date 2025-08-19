@@ -11,6 +11,10 @@ branch_controller = BranchController()
 def get_branches():
     return branch_controller.get_all()
 
+@branch_bp.route(rule="/branch-name", methods=["GET"])
+def get_branch_name():
+    return branch_controller.get_branch_name()
+
 @branch_bp.route("/", methods=["POST"])
 # @jwt_required()
 # @access_control("owner")
