@@ -4,10 +4,12 @@ from ..helper.functions import generate_id
 
 
 class Admin(db.Model):
-    admin_id = db.Column(db.String(255), primary_key=True, default=generate_id("ADMIN"))
+    admin_id = db.Column(db.String(255), primary_key=True, default=lambda:generate_id("ADMIN"))
     account_id = db.Column(db.String(255), db.ForeignKey("auth.account_id"), nullable=False)
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=False)
-    admin_name = db.Column(db.String(255))
+    first_name = db.Column(db.String(255), nullable=False)
+    last_name = db.Column(db.String(255), nullable=False)
+    middle_initial = db.Column(db.String(255), nullable=False)
     image = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
@@ -24,7 +26,9 @@ class Admin(db.Model):
                 "branch_id": self.branch.branch_id,
                 "branch_name": self.branch.branch_name
             },
-            "admin_name": self.admin_name,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "middle_initial": self.middle_initial,
             "image": self.image,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()

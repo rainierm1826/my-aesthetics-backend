@@ -27,7 +27,9 @@ class AuthController(BaseCRUDController):
     def _custom_create(self, data):
         image = data.pop("image", None)
         branch_id = data.pop("branch_id", None)
-        admin_name = data.pop("admin_name", None)
+        first_name = data.pop("first_name", None)
+        last_name = data.pop("last_name", None)
+        middle_initial = data.pop("middle_initial", None)
         
         # Validate Auth fields
         auth_required_fields = ["email", "password", "role_id"]
@@ -43,12 +45,9 @@ class AuthController(BaseCRUDController):
             user = User(account_id=auth.account_id)
             db.session.add(user)
         elif data["role_id"] == "2":
-            # Validate admin fields
-            if not branch_id or not admin_name:
-                return jsonify({"status": False, "message": "missing required fields for admin: branch_id and admin_name"}), 400
             
             # Create admin account
-            admin = Admin(account_id=auth.account_id, admin_name=admin_name, image=image, branch_id=branch_id)
+            admin = Admin(account_id=auth.account_id, first_name=first_name, last_name=last_name, middle_initial=middle_initial, image=image, branch_id=branch_id)
             db.session.add(admin)
         
         db.session.commit()
