@@ -87,7 +87,7 @@ class AuthController(BaseCRUDController):
             response.delete_cookie("refresh_token")
             return response
         except Exception as e:
-            return jsonify({"status": False, "message":"Internal Error", "error": str(e)}), 500
+            return jsonify({"status": False, "message":"Internal Error"}), 500
 
     # get user account
     def get_by_id(self):
