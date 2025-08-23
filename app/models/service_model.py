@@ -2,17 +2,19 @@ from app import db
 from ..helper.functions import generate_id
 from datetime import datetime, timezone
 from sqlalchemy import Float
+from ..helper.constant import discount_type_enum
 
 class Service(db.Model):
-    service_id = db.Column(db.String(255), primary_key=True, default=generate_id("SERVICE"))
+    service_id = db.Column(db.String(255), primary_key=True, default=lambda:generate_id("SERVICE"))
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=True)
     service_name = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.Text, nullable=True)
-    original_price = db.Column(Float, nullable=False)
-    is_sale = db.Column(db.Boolean, nullable=False, default=False)
-    discount_percentage = db.Column(Float, nullable=False, default=0.0)
-    final_price = db.Column(Float, nullable=False, default=0.0)
     category = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    price = db.Column(Float, nullable=False)
+    is_sale = db.Column(db.Boolean, nullable=False, default=False)
+    discount_type = db.Column(discount_type_enum, nullable=True)
+    discount = db.Column(Float, nullable=True)
+    discounted_price = db.Column(Float, nullable=False)
     image = db.Column(db.Text, nullable=False)
     average_rate = db.Column(Float, nullable=True, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
@@ -30,10 +32,11 @@ class Service(db.Model):
               "branch_name": self.branch.branch_name if self.branch_id else None
             },
             "service_name": self.service_name,
-            "original_price": self.original_price,
-            "final_price": self.final_price,
+            "price": self.price,
+            "discounted_price": self.discounted_price,
             "is_sale": self.is_sale,
-            "discount_percentage": self.discount_percentage,
+            "discount_type": self.discount_type,
+            "discount": self.discount,
             "category": self.category,
             "image": self.image,
             "avarage_rate": self.average_rate,
