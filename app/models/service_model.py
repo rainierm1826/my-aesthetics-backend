@@ -38,6 +38,7 @@ class Service(db.Model):
             "discount_type": self.discount_type,
             "discount": self.discount,
             "category": self.category,
+            "description": self.description,
             "image": self.image,
             "avarage_rate": self.average_rate,
             "created_at": self.created_at.isoformat() if self.created_at else None,
