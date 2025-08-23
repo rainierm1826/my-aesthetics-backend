@@ -4,7 +4,7 @@ from ..helper.functions import generate_voucher_code
 from ..helper.constant import discount_type_enum
 
 class Voucher(db.Model):
-    voucher_code = db.Column(db.String(255), primary_key=True, default=lambda:generate_voucher_code)
+    voucher_code = db.Column(db.String(255), primary_key=True, default=lambda:generate_voucher_code())
     discount_type = db.Column(discount_type_enum, nullable=False)
     discount_amount = db.Column(db.Float, nullable=False, default=0.0)
     minimum_spend = db.Column(db.Float, nullable=False, default=0.0)

@@ -7,12 +7,12 @@ from datetime import datetime, timezone
 
 def generate_voucher_code():
     random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
-    return f"aesthetics-{random_chars}"
+    return f"AESTHETICS-{random_chars}"
 
 def generate_id(prefix):
     year = datetime.now(timezone.utc).strftime("%y")  
-    unique_part = str(uuid.uuid4()).replace('-', '')[:12]
-    return f"{prefix}-{year}-{unique_part}"
+    random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    return f"{prefix}-{year}-{random_chars}"
 
 def generate_otp():
     return ''.join(random.choices("0123456789", k=6))
