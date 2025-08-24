@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from bcrypt import hashpw, checkpw, gensalt
 
 class Auth(db.Model):
-    account_id = db.Column(db.String(255), primary_key=True, default=generate_id("ACC"))
+    account_id = db.Column(db.String(255), primary_key=True, default=lambda:generate_id("ACC"))
     provider = db.Column(db.String(255))
     provider_id = db.Column(db.String(255))
     email = db.Column(db.String(255), unique=True, nullable=False)

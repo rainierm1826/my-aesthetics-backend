@@ -93,15 +93,31 @@ class AuthController(BaseCRUDController):
     def get_by_id(self):
         identity = get_jwt_identity()
         return super().get_by_id(identity)
-
     
+
     # get admin account
     def get_all_admin_credentials(self):
         try:
-            admins_credentials = Auth.query.filter_by(role_id="2").all()
-            return jsonify({"status": True, "admin": [admin_credential.to_dict() for admin_credential in admins_credentials]})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            page = int(request.args.get("page", 1))
+            per_page = int(request.args.get("limit", 10))
+            query = Auth.query.filter_by(role_id="2").order_by(Auth.created_at.desc())
+            pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+            items = [admin.to_dict() for admin in pagination.items]
+            return jsonify({
+                "status": True,
+                "message": "Admins retrieved successfully",
+                "admin": items,
+                "total": pagination.total,
+                "pages": pagination.pages,
+                "page": pagination.page,
+                "per_page": pagination.per_page,
+                "has_prev": pagination.has_prev,
+                "has_next": pagination.has_next
+            }), 200
+
+        except Exception as e:      
+            return jsonify({"status": False, "message": "Server error", "error": str(e)}), 500
+
     
     # delete admin account only. not applicable for customer account
     def delete(self):

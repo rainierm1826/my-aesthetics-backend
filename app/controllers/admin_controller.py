@@ -11,7 +11,7 @@ class AdminController(BaseCRUDController):
             id_field="admin_id",
             required_fields=["email", "password","admin_name", "branch_id", "image"],
             updatable_fields=["admin_name", "branch_id", "image"],
-            searchable_fields=["admin_name"],
+            searchable_fields=["first_name", "last_name"],
             filterable_fields={"branch": (Branch, "branch_name")},
             joins=[(Branch, Branch.branch_id==Admin.branch_id)]
         )
