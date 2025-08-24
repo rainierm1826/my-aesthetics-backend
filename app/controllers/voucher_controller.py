@@ -6,6 +6,7 @@ class VoucherController(BaseCRUDController):
         super().__init__(
             model=Voucher,
             id_field="voucher_code",
+            searchable_fields=["voucher_code"],
             required_fields=["quantity", "discount_amount","minimum_spend",  "valid_from", "valid_until", "discount_type"],
             updatable_fields=["quantity", "discount_amount","minimum_spend",  "valid_from", "valid_until", "discount_type"],
         )

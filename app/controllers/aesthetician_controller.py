@@ -11,7 +11,7 @@ class AestheticianController(BaseCRUDController):
             required_fields=["first_name", "last_name", "middle_initial", "phone_number", "image", "sex", "experience"],
             updatable_fields=["first_name", "last_name", "middle_initial", "phone_number", "image", "sex", "experience", "branch_id", "availability"],
             searchable_fields=["first_name", "last_name"],
-            filterable_fields={"sex": "sex", "experience": "experience", "branch": (Branch, "branch_name")},
+            filterable_fields={"sex": "sex", "experience": "experience", "branch": (Branch, "branch_id")},
             sortable_fields={"rate": Aesthetician.average_rate, "name":Aesthetician.first_name},
             joins=[(Branch, Branch.branch_id==Aesthetician.branch_id)]
         )

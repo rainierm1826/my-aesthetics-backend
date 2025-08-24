@@ -11,7 +11,7 @@ class ServiceController(BaseCRUDController):
             id_field="service_id",
             required_fields=["service_name", "price", "is_sale", "category", "image"],
             searchable_fields=["service_name"],
-            filterable_fields={"category": "category", "branch": (Branch, "branch_name")},
+            filterable_fields={"category": "category", "branch": (Branch, "branch_id")},
             updatable_fields=["service_name", "branch_id", "original_price", "is_sale", "discount_percentage", "category", "image"],
             sortable_fields={"price": Service.price, "service": Service.service_name, "rate": Service.average_rate},
             joins=[(Branch, Service.branch_id == Branch.branch_id, "left")]
