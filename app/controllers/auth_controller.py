@@ -1,82 +1,180 @@
-from .base_crud_controller import BaseCRUDController
 from ..models.auth_model import Auth
-from ..models.user_model import User
 from ..models.admin_model import Admin
-from flask import request, jsonify, make_response
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity
+from ..models.user_model import User
+from ..models.otp_model import OTP
+from flask import jsonify, request, make_response
 from ..extension import db
-from ..helper.functions import validate_required_fields
+from datetime import datetime, timedelta, timezone
+from ..helper.functions import generate_otp, send_email_otp
+from flask_jwt_extended import create_access_token, create_refresh_token
 
-class AuthController(BaseCRUDController):
-    def __init__(self):
-        super().__init__(
-            model=Auth,
-            id_field="account_id",
-            updatable_fields=["password"],
-            
-        )
-        
-    def create(self):
-        data = request.json      
-        auth = Auth.query.filter_by(email=data["email"]).first()  
-        if auth:
-            return jsonify({"status": False, "message": "email name already exist"}), 409
-        return super().create()
-    
-    # sign up customer and admin account
-    def _custom_create(self, data):
-        image = data.pop("image", None)
-        branch_id = data.pop("branch_id", None)
-        first_name = data.pop("first_name", None)
-        last_name = data.pop("last_name", None)
-        middle_initial = data.pop("middle_initial", None)
-        
-        # Validate Auth fields
-        auth_required_fields = ["email", "password", "role_id"]
-        if not validate_required_fields(data, auth_required_fields):
-            return jsonify({"status": False, "message": "missing required fields for auth"}), 400
-        
-        auth = Auth(**data)
-        db.session.add(auth)
-        db.session.flush()
-        
-        if data["role_id"] == "1":
-            # Create user account
-            user = User(account_id=auth.account_id)
-            db.session.add(user)
-        elif data["role_id"] == "2":
-            
-            # Create admin account
-            admin = Admin(account_id=auth.account_id, first_name=first_name, last_name=last_name, middle_initial=middle_initial, image=image, branch_id=branch_id)
-            db.session.add(admin)
-        
-        db.session.commit()
-        return auth
-    
-    def update_password(self):
-        pass
 
+
+class AuthController:
+    def customer_signup(self):
+        try:
+            data = request.json
+            data["role_id"] = "1"
+            
+            auth = Auth.query.filter_by(email=data["email"]).first()
+            
+            if not self._validate_credentials(data):
+                return jsonify({"status": False, "message": "Missing email or password"}), 404
+            
+            if auth:
+                if auth.is_verified:
+                    return jsonify({"status": False, "message": "Email already exists"}), 409
+                else:
+                    OTP.query.filter_by(email=data["email"]).delete()
+                    db.session.commit()
+                    
+                    
+                    expiration_time = datetime.now(timezone.utc) + timedelta(minutes=5)
+                    otp = generate_otp()
+                    new_otp = OTP(otp_code=otp, expires_at=expiration_time, email=data["email"])
+                    db.session.add(new_otp)
+                    db.session.commit() 
+                    send_email_otp(to_email=data["email"], otp=otp)
+                    return jsonify({"status": True, "message": "New OTP sent to email"}), 200
+            
+            new_auth = Auth(**data)
+            db.session.add(new_auth)
+            db.session.flush()
+            
+            new_user = User(account_id=new_auth.account_id)
+            db.session.add(new_user)
+            db.session.flush()
+            
+            
+            expiration_time = datetime.now(timezone.utc) + timedelta(minutes=5)
+            otp = generate_otp()
+            new_otp = OTP(otp_code=otp, expires_at=expiration_time, email=data["email"])
+            db.session.add(new_otp)
+            db.session.commit()
+            
+            send_email_otp(to_email=data["email"],otp=otp)
+            
+            return jsonify({"status": True, "message": "OTP sent to email successfully", "customer":new_auth.to_dict()})
+                
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
     
-    # sign in customer and admin account
-    def sign_in(self):
-        data = request.json
-        auth = Auth.query.filter_by(email=data["email"]).first()
-        if not auth:
-            return jsonify({"status": False, "message": "wrong email"}), 404
-        if not auth.check_password(data["password"]):
-            return jsonify({"status": False, "message": "wrong password"}), 404
-        access_token = create_access_token(identity=auth.account_id, additional_claims={"email": auth.email, "role":auth.role.role_name})
-        refresh_token = create_refresh_token(identity=auth.account_id)
-        response = make_response(jsonify({
-            "status": True,
-            "message": "login successfully",
-            "user": auth.to_dict(),
-            "access_token":access_token,
-        }))
-        response.set_cookie("refresh_token", refresh_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=False)
-        return response
-    
-    # sign out customer and admin account
+    def admin_signup(self):
+        try:
+            data = request.json
+        
+            auth = Auth.query.filter_by(email=data["email"]).first()
+            
+            if auth:
+                return jsonify({"status": False, "message": "Email already exists"}), 409
+
+            if not self._validate_credentials(crendetials=data):
+                return jsonify({"status": False, "message": "Missing email or password"}), 404
+
+            email = data.pop("email")
+            password = data.pop("password")
+            new_auth = Auth(email=email, password=password, role_id="2")
+            db.session.add(new_auth)
+            db.session.flush()
+
+            new_user = Admin(account_id=new_auth.account_id, **data)
+            db.session.add(new_user)
+            db.session.flush()
+
+            db.session.commit()
+
+            return jsonify({"status": True, "message": "Admin created successfully", "admin":new_auth.to_dict()}), 201
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
+
+    def request_otp(self):
+        try:
+            data = request.json
+            
+            if not data["email"]:
+                return jsonify({"status": False, "message": "Missing email"}), 400
+
+            auth = Auth.query.filter_by(email=data["email"]).first()
+
+            if auth and auth.is_verified:
+                return jsonify({"status": False, "message": "Email already exists"}), 409
+
+            if auth and not auth.is_verified:
+                OTP.query.filter_by(email=data["email"]).delete()
+                db.session.commit()
+
+            # Generate a new OTP
+            expiration_time = datetime.now(timezone.utc) + timedelta(minutes=5)
+            otp = generate_otp()
+
+            new_otp = OTP(otp_code=otp, expires_at=expiration_time, email=data["email"])
+            db.session.add(new_otp)
+            db.session.commit()
+
+            send_email_otp(to_email=data["email"], otp=otp)
+
+            return jsonify({"status": True, "message": "OTP sent to email successfully"}), 200
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                "status": False,
+                "message": "Internal Error",
+                "error": str(e)
+            }), 500
+
+    def verify_otp(self):
+        try:
+            data = request.json
+
+            auth = Auth.query.filter_by(email=data["email"]).first()
+            if not auth:
+                return jsonify({"status": False, "message": "User not found"}), 404
+
+            otp = OTP.query.filter_by(email=data["email"], otp_code=data["otp_code"], is_used=False).first()
+            if not otp:
+                return jsonify({"status": False, "message": "Invalid OTP"}), 400
+
+            # Check expiry
+            if datetime.now(timezone.utc) > otp.expires_at:
+                return jsonify({"status": False, "message": "OTP Expired"}), 400
+
+            # Success
+            auth.is_verified = True
+            otp.is_used = True
+            db.session.commit()
+
+            return jsonify({"status": True, "message": "OTP Verified Successfully"}), 200
+
+        except Exception as e:
+            return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
+
+
+
+    def signin(self):
+        try:
+            data = request.json
+            auth = Auth.query.filter_by(email=data["email"], is_verified=True).first()
+            if not auth:
+                return jsonify({"status": False, "message": "wrong email"}), 404
+            if not auth.check_password(data["password"]):
+                return jsonify({"status": False, "message": "wrong password"}), 404
+            access_token = create_access_token(identity=auth.account_id, additional_claims={"email": auth.email, "role":auth.role.role_name})
+            refresh_token = create_refresh_token(identity=auth.account_id)
+            response = make_response(jsonify({
+                "status": True,
+                "message": "login successfully",
+                "user": auth.to_dict(),
+                "access_token":access_token,
+            }))
+            response.set_cookie("refresh_token", refresh_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=False)
+            return response
+        except Exception as e:
+            return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
+        
     def sign_out(self):
         try:
             response = make_response(jsonify({
@@ -88,58 +186,11 @@ class AuthController(BaseCRUDController):
             return response
         except Exception as e:
             return jsonify({"status": False, "message":"Internal Error"}), 500
-
-    # get user account
-    def get_by_id(self):
-        identity = get_jwt_identity()
-        return super().get_by_id(identity)
     
-
-    # get admin account
-    def get_all_admin_credentials(self):
-        try:
-            page = int(request.args.get("page", 1))
-            per_page = int(request.args.get("limit", 10))
-            query = Auth.query.filter_by(role_id="2").order_by(Auth.created_at.desc())
-            pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-            items = [admin.to_dict() for admin in pagination.items]
-            return jsonify({
-                "status": True,
-                "message": "Admins retrieved successfully",
-                "admin": items,
-                "total": pagination.total,
-                "pages": pagination.pages,
-                "page": pagination.page,
-                "per_page": pagination.per_page,
-                "has_prev": pagination.has_prev,
-                "has_next": pagination.has_next
-            }), 200
-
-        except Exception as e:      
-            return jsonify({"status": False, "message": "Server error", "error": str(e)}), 500
-
     
-    # delete admin account only. not applicable for customer account
-    def delete(self):
-        try:
-            data = request.json
-            auth = Auth.query.filter_by(account_id=data["account_id"]).first()
-            
-            if not auth:
-                return jsonify({"status": False, "message": "account not found"}), 404
-            
-            if auth.role_id != "2":
-                return jsonify({"status": False, "message": "can only delete admin accounts"}), 403
-
-            admin = Admin.query.filter_by(account_id=data["account_id"]).first()
-            if admin:
-                db.session.delete(admin)
-            
-            db.session.delete(auth)
-            db.session.commit()
-            return jsonify({"status": True, "message": "admin account deleted successfully"}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
-            
-        
+    def _validate_credentials(self, crendetials):
+        required_fields = ["email", "password"]
+        for field in required_fields:
+            if field not in crendetials:
+                return False
+        return True

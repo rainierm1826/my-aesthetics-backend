@@ -29,6 +29,7 @@ def create_app():
     from .models.appointment_model import Appointment
     from .models.service_model import Service
     from .models.voucher_model import Voucher
+    from .models.otp_model import OTP
     
     from .routes.auth_routes import auth_bp
     from .routes.user_routes import user_bp

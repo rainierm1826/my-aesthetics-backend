@@ -8,11 +8,23 @@ auth_controller = AuthController()
 
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
-    return auth_controller.create()
+    return auth_controller.customer_signup()
+
+@auth_bp.route("/admin-signup", methods=["POST"])
+def admin_signup():
+    return auth_controller.admin_signup()
+
+@auth_bp.route("/verify-otp", methods=["POST"])
+def verify_otp_route():
+    return auth_controller.verify_otp()
+
+@auth_bp.route("/resend-otp", methods=["POST"])
+def resend_otp():
+    return auth_controller.request_otp()
 
 @auth_bp.route("/signin", methods=["POST"])
 def signin():
-    return auth_controller.sign_in()
+    return auth_controller.signin()
 
 @auth_bp.route("/signout", methods=["POST"])
 def signout():
