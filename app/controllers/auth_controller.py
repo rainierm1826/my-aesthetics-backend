@@ -54,7 +54,7 @@ class AuthController:
             
             send_email_otp(to_email=data["email"],otp=otp)
             
-            return jsonify({"status": True, "message": "OTP sent to email successfully", "customer":new_auth.to_dict()})
+            return jsonify({"status": True, "message": "OTP sent to email successfully", "auth":new_auth.to_dict()})
                 
         except Exception as e:
             db.session.rollback()
@@ -84,7 +84,7 @@ class AuthController:
 
             db.session.commit()
 
-            return jsonify({"status": True, "message": "Admin created successfully", "admin":new_auth.to_dict()}), 201
+            return jsonify({"status": True, "message": "Admin created successfully", "auth":new_auth.to_dict()}), 201
 
         except Exception as e:
             db.session.rollback()
@@ -157,9 +157,13 @@ class AuthController:
     def signin(self):
         try:
             data = request.json
-            auth = Auth.query.filter_by(email=data["email"], is_verified=True).first()
+            auth = Auth.query.filter_by(email=data["email"]).first()
             if not auth:
                 return jsonify({"status": False, "message": "Wrong email"}), 404
+            
+            if auth.role == "1" and not auth.is_verified:
+                return jsonify({"status": False, "message": "Wrong email"}), 403
+            
             if not auth.check_password(data["password"]):
                 return jsonify({"status": False, "message": "Wrong password"}), 404
             access_token = create_access_token(identity=auth.account_id, additional_claims={"email": auth.email, "role":auth.role.role_name})
@@ -167,7 +171,7 @@ class AuthController:
             response = make_response(jsonify({
                 "status": True,
                 "message": "login successfully",
-                "user": auth.to_dict(),
+                "auth": auth.to_dict(),
                 "access_token":access_token,
             }))
             response.set_cookie("refresh_token", refresh_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=False)
