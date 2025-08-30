@@ -159,9 +159,9 @@ class AuthController:
             data = request.json
             auth = Auth.query.filter_by(email=data["email"], is_verified=True).first()
             if not auth:
-                return jsonify({"status": False, "message": "wrong email"}), 404
+                return jsonify({"status": False, "message": "Wrong email"}), 404
             if not auth.check_password(data["password"]):
-                return jsonify({"status": False, "message": "wrong password"}), 404
+                return jsonify({"status": False, "message": "Wrong password"}), 404
             access_token = create_access_token(identity=auth.account_id, additional_claims={"email": auth.email, "role":auth.role.role_name})
             refresh_token = create_refresh_token(identity=auth.account_id)
             response = make_response(jsonify({
