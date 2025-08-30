@@ -14,6 +14,10 @@ def signup():
 def admin_signup():
     return auth_controller.admin_signup()
 
+@auth_bp.route("/owner-signup", methods=["POST"])
+def owner_signup():
+    return auth_controller.owner_signup()
+
 @auth_bp.route("/verify-otp", methods=["POST"])
 def verify_otp_route():
     return auth_controller.verify_otp()
@@ -29,6 +33,7 @@ def signin():
 @auth_bp.route("/signout", methods=["POST"])
 def signout():
     return auth_controller.sign_out()
+
 
 @auth_bp.route("/", methods=["GET"])
 @jwt_required()

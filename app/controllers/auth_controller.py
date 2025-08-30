@@ -2,6 +2,7 @@ from ..models.auth_model import Auth
 from ..models.admin_model import Admin
 from ..models.user_model import User
 from ..models.otp_model import OTP
+from ..models.owner_model import Owner
 from flask import jsonify, request, make_response
 from ..extension import db
 from datetime import datetime, timedelta, timezone
@@ -90,6 +91,33 @@ class AuthController:
             db.session.rollback()
             return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
 
+    def owner_signup(self):
+        try:
+            data = request.json
+        
+            auth = Auth.query.filter_by(email=data["email"]).first()
+            
+            if auth:
+                return jsonify({"status": False, "message": "Email already exists"}), 409
+
+            if not self._validate_credentials(crendetials=data):
+                return jsonify({"status": False, "message": "Missing email or password"}), 404
+
+            new_auth = Auth(email=data["email"], password=data["password"], role_id="3")
+            db.session.add(new_auth)
+            db.session.flush()
+
+            new_user = Owner(account_id=new_auth.account_id)
+            db.session.add(new_user)
+            db.session.flush()
+            db.session.commit()
+
+            return jsonify({"status": True, "message": "Owner created successfully", "auth":new_auth.to_dict()}), 201
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
+    
     def request_otp(self):
         try:
             data = request.json
