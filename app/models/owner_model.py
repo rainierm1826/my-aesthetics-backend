@@ -16,7 +16,11 @@ class Owner(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
     auth = db.relationship("Auth", backref="owners")
-    
+
+    @property
+    def age(self):
+        if not self.birthday:
+            return None 
     
     def to_dict(self):
         return {
@@ -26,6 +30,7 @@ class Owner(db.Model):
             "last_name": self.last_name,
             "middle_name": self.middle_initial,
             "birthday": self.birthday.isoformat() if self.birthday else None,
+            "age": self.age,
             "image": self.image,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()

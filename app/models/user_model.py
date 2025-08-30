@@ -19,7 +19,6 @@ class User(db.Model):
     
     @property
     def age(self):
-        
         if not self.birthday:
             return None
         

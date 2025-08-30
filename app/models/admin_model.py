@@ -19,6 +19,11 @@ class Admin(db.Model):
     auth = db.relationship("Auth", backref="admins")
     branch = db.relationship("Branch", backref="branches")
     
+    @property
+    def age(self):
+        if not self.birthday:
+            return None
+    
     
     def to_dict(self):
         return {
@@ -32,6 +37,8 @@ class Admin(db.Model):
             "last_name": self.last_name,
             "middle_initial": self.middle_initial,
             "image": self.image,
+            "birthday": self.birthday.isoformat() if self.birthday else None,
+            "age": self.age,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }
