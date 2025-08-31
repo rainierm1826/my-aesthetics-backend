@@ -1,7 +1,7 @@
 import random
 import string
 from datetime import datetime, timezone
-import smtplib
+import smtplib, ssl
 from email.mime.text import MIMEText
 import os
 
@@ -21,27 +21,31 @@ def generate_otp():
     return ''.join(random.choices("0123456789", k=6))
 
 def send_email_otp(to_email, otp):
-        
     SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
     EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
-    EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-        
+    EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  
+
     if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
         print("Error: Email credentials not configured")
         return False
 
     subject = "Account Verification"
-    
-    message = MIMEText(f"Your OTP code is: {otp}")
+    message = MIMEText(f"Your OTP code is: {otp}", "plain")
     message["From"] = EMAIL_ADDRESS
     message["To"] = to_email
     message["Subject"] = subject
-                
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls()
-        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        server.send_message(message)
+
+    try:
+        context = ssl.create_default_context()
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls(context=context)
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.send_message(message)
+        return True
+    except Exception as e:
+        print("Error sending email:", e)
+        return False
             
     
 
