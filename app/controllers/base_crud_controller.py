@@ -171,7 +171,7 @@ class BaseCRUDController:
                 "error": str(e)
             }), 500 
     
-    # get the details of the resource by id
+    
     def get_by_id(self, id):
         try:
             instance = self.model.query.filter(getattr(self.model, self.id_field) == id).first()

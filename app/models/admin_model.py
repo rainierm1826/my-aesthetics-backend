@@ -27,7 +27,7 @@ class Admin(db.Model):
     
     def to_dict(self):
         return {
-            "admin_id": self.admin_id,
+            "user_id": self.admin_id,
             "account_id": self.account_id,
             "branch": {
                 "branch_id": self.branch.branch_id,

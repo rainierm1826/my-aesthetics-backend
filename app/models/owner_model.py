@@ -24,7 +24,7 @@ class Owner(db.Model):
     
     def to_dict(self):
         return {
-            "owner_id": self.owner_id,
+            "user_id": self.owner_id,
             "account_id": self.account_id,
             "first_name": self.first_name,
             "last_name": self.last_name,
