@@ -202,6 +202,7 @@ class AuthController:
                 "auth": auth.to_dict(),
                 "access_token":access_token,
             }))
+            response.set_cookie("access_token", access_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=False)
             response.set_cookie("refresh_token", refresh_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=False)
             return response
         except Exception as e:

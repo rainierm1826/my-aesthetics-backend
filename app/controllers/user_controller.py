@@ -44,6 +44,7 @@ class UserController(BaseCRUDController):
             
         except Exception as e:
             db.session.rollback()
+            print(str(e))
             return jsonify({
                 "status": False,
                 "message": "internal error",
