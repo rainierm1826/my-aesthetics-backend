@@ -9,7 +9,7 @@ class Owner(db.Model):
     first_name = db.Column(db.String(255) )
     last_name = db.Column(db.String(255) )
     middle_initial = db.Column(db.String(255))
-    phone_number = db.Column(db.Integer)
+    phone_number = db.Column(db.String(255))
     birthday = db.Column("birthday", db.DateTime)
     image = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
@@ -28,10 +28,11 @@ class Owner(db.Model):
             "account_id": self.account_id,
             "first_name": self.first_name,
             "last_name": self.last_name,
-            "middle_name": self.middle_initial,
+            "middle_initial": self.middle_initial,
             "birthday": self.birthday.isoformat() if self.birthday else None,
             "age": self.age,
             "image": self.image,
+            "phone_number":self.phone_number,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }

@@ -10,7 +10,7 @@ class Admin(db.Model):
     first_name = db.Column(db.String(255), nullable=False)
     last_name = db.Column(db.String(255), nullable=False)
     middle_initial = db.Column(db.String(255), nullable=False)
-    phone_number = db.Column(db.Integer)
+    phone_number = db.Column(db.String(255))
     birthday = db.Column("birthday", db.DateTime)
     image = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
@@ -39,6 +39,7 @@ class Admin(db.Model):
             "image": self.image,
             "birthday": self.birthday.isoformat() if self.birthday else None,
             "age": self.age,
+            "phone_number":self.phone_number,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }

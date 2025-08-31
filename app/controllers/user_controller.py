@@ -83,12 +83,13 @@ class UserController(BaseCRUDController):
             
             return jsonify({
                 "status": True,
-                "message": f"{user.__class__.__tablename__} updated successfully",
-                user.__class__.__tablename__: user.to_dict()
+                "message": "user updated successfully",
+                "user": user.to_dict()
             })
             
         except Exception as e:
             db.session.rollback()
+            print(str(e))
             return jsonify({
                 "status": False,
                 "message": "internal error", 
