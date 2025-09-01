@@ -195,7 +195,7 @@ class AuthController:
             
             if not auth.check_password(data["password"]):
                 return jsonify({"status": False, "message": "Wrong password"}), 404
-            access_token = create_access_token(identity=auth.account_id, additional_claims={"email": auth.email, "role":auth.role.role_name})
+            access_token = create_access_token(identity=auth.account_id, additional_claims={"email": auth.email, "role":auth.role.role_name, "is_verified":auth.is_verified})
             refresh_token = create_refresh_token(identity=auth.account_id)
             response = make_response(jsonify({
                 "status": True,
