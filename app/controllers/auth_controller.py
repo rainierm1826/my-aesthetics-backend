@@ -21,14 +21,16 @@ class AuthController:
             
             if not self._validate_credentials(data):
                 return jsonify({"status": False, "message": "Missing email or password"}), 404
-            
+        
             if auth:
-                if auth.is_verified:
+                if auth.is_verified and auth.role_id == "1":
                     return jsonify({"status": False, "message": "Email already exists"}), 409
+                
+                if auth.role_id in ["2", "3"]:
+                    return jsonify({"status": False, "message": "Email already exists"}), 409
+                
                 else:
-                    OTP.query.filter_by(email=data["email"]).delete()
-                    db.session.commit()
-                    
+                    OTP.query.filter_by(email=data["email"]).delete()                    
                     
                     expiration_time = datetime.now(timezone.utc) + timedelta(minutes=5)
                     otp = generate_otp()
@@ -181,7 +183,6 @@ class AuthController:
             return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
 
 
-
     def signin(self):
         try:
             data = request.json
@@ -189,7 +190,7 @@ class AuthController:
             if not auth:
                 return jsonify({"status": False, "message": "Wrong email"}), 404
             
-            if auth.role == "1" and not auth.is_verified:
+            if auth.role_id == "1" and not auth.is_verified:
                 return jsonify({"status": False, "message": "Wrong email"}), 403
             
             if not auth.check_password(data["password"]):
