@@ -35,25 +35,25 @@ def signout():
     return auth_controller.sign_out()
 
 
-@auth_bp.route("/", methods=["GET"])
-@jwt_required()
-def get_by_id():
-    return auth_controller.get_by_id()
-
-@auth_bp.route("/all-admin", methods=["GET"])
+# @auth_bp.route("/", methods=["GET"])
 # @jwt_required()
-# @access_control("admin", "owner")
-def get_all_admin_credentials():
-    return auth_controller.get_all_admin_credentials()
+# def get_by_id():
+#     return auth_controller.get_by_id()
 
-@auth_bp.route("/update-password", methods=["PATCH"])
-@jwt_required()
-def update_password():
-    return auth_controller.update()
+# @auth_bp.route("/all-admin", methods=["GET"])
+# # @jwt_required()
+# # @access_control("admin", "owner")
+# def get_all_admin_credentials():
+#     return auth_controller.get_all_admin_credentials()
+
+# @auth_bp.route("/update-password", methods=["PATCH"])
+# @jwt_required()
+# def update_password():
+#     return auth_controller.update()
 
 @auth_bp.route("/delete-admin", methods=["DELETE"])
-@jwt_required()
-@access_control("owner")
+# @jwt_required()
+# @access_control("owner")
 def delete_admin():
     return auth_controller.delete() # this delete the admin account only
 

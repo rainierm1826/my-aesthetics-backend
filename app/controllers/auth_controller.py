@@ -8,10 +8,19 @@ from ..extension import db
 from datetime import datetime, timedelta, timezone
 from ..helper.functions import generate_otp, send_email_otp
 from flask_jwt_extended import create_access_token, create_refresh_token
+from ..controllers.base_crud_controller import BaseCRUDController
 
 
 
-class AuthController:
+class AuthController(BaseCRUDController):
+    def __init__(self):
+        super().__init__(
+            model=Auth,
+            id_field="account_id",
+            
+        )
+    
+    
     def customer_signup(self):
         try:
             data = request.json
@@ -221,6 +230,7 @@ class AuthController:
         except Exception as e:
             return jsonify({"status": False, "message":"Internal Error"}), 500
     
+
     
     def _validate_credentials(self, crendetials):
         required_fields = ["email", "password"]

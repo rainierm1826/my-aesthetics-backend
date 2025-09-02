@@ -5,7 +5,7 @@ from ..helper.functions import generate_id
 
 class Admin(db.Model):
     admin_id = db.Column(db.String(255), primary_key=True, default=lambda:generate_id("ADMIN"))
-    account_id = db.Column(db.String(255), db.ForeignKey("auth.account_id"), nullable=False)
+    account_id = db.Column(db.String(255), db.ForeignKey("auth.account_id", ondelete="CASCADE"), nullable=False)
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=False)
     first_name = db.Column(db.String(255), nullable=False)
     last_name = db.Column(db.String(255), nullable=False)
@@ -16,7 +16,7 @@ class Admin(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     
-    auth = db.relationship("Auth", backref="admins")
+    auth = db.relationship("Auth", back_populates="admins")
     branch = db.relationship("Branch", backref="branches")
     
     @property
@@ -28,7 +28,10 @@ class Admin(db.Model):
     def to_dict(self):
         return {
             "user_id": self.admin_id,
-            "account_id": self.account_id,
+            "auth": {
+                "account_id": self.auth.account_id,
+                "email": self.auth.email
+            },
             "branch": {
                 "branch_id": self.branch.branch_id,
                 "branch_name": self.branch.branch_name

@@ -15,6 +15,7 @@ class Auth(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     role = db.relationship("Role", backref="auths")
+    admins = db.relationship("Admin", back_populates="auth", cascade="all, delete-orphan", passive_deletes=True)
     
     @property
     def password(self):
