@@ -138,9 +138,7 @@ class BaseCRUDController:
     # generic delete method
     def delete(self):
         try:
-            data = request.json
-            print(data)
-            
+            data = request.json            
             if self.id_field not in data:
                 return jsonify({
                 "status": False,

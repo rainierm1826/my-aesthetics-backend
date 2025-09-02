@@ -20,7 +20,6 @@ class AuthController(BaseCRUDController):
             
         )
     
-    
     def customer_signup(self):
         try:
             data = request.json
