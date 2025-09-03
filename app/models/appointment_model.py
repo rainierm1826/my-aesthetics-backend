@@ -82,10 +82,11 @@ class Appointment(db.Model):
             "service": {
                 "service_id": self.service.service_id,
                 "service_name": self.service.service_name,
-                "final_price": self.service.final_price,
+                "final_price": self.service.price,
                 "category": self.service.category,
             },
             "status": self.status,
+            "slot_number": self.slot_number,
             "branch_rating": self.branch_rating,
             "service_rating": self.service_rating,
             "aesthetician_rating": self.aesthetician_rating,

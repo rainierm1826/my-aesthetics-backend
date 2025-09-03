@@ -14,12 +14,12 @@ def create_appointment():
     return appointment_controller.create()
 
 @appointment_bp.route("/all", methods=["GET"])
-@access_control("admin", "owner")
+# @access_control("admin", "owner")
 def get_appointments():
     return appointment_controller.get_all()
 
 @appointment_bp.route("/", methods=["GET"])
-@jwt_required()
+# @jwt_required()
 def get_appointment():
     return appointment_controller.get_all()
 

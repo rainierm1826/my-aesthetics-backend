@@ -5,7 +5,7 @@ from ..helper.constant import sex_enum
 from ..helper.functions import generate_id
 
 class WalkIn(db.Model):
-    walk_in_id = db.Column(db.String(255), primary_key=True, default=generate_id("MY"))
+    walk_in_id = db.Column(db.String(255), primary_key=True, default=lambda:generate_id("MY"))
     first_name = db.Column(db.String(255), nullable=False)
     last_name = db.Column(db.String(255), nullable=False)
     middle_initial = db.Column(CHAR(1))

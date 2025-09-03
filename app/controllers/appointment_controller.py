@@ -25,14 +25,14 @@ class AppointmentController(BaseCRUDController):
         )
     
     
-    def _apply_filters(self, query):
-        query = super()._apply_filters(query)
+    # def _apply_filters(self, query):
+    #     query = super()._apply_filters(query)
 
-        identity = get_jwt_identity()
-        user = User.query.filter_by(account_id=identity).first()
-        if not user:
-            raise Exception("User not found")
-        return query.filter(Appointment.user_id == user.user_id)
+    #     identity = get_jwt_identity()
+    #     user = User.query.filter_by(account_id=identity).first()
+    #     if not user:
+    #         raise Exception("User not found")
+    #     return query.filter(Appointment.user_id == user.user_id)
     
     
 
@@ -132,10 +132,10 @@ class AppointmentController(BaseCRUDController):
             return jsonify({"status": False, "message": "service is not available in this branch"}), 503
         
         # Calculate original amount (base service price)
-        original_amount = service.original_price
+        original_amount = service.price
         
         # Calculate final amount with all discounts
-        final_amount = service.final_price
+        final_amount = service.price
         
         # Add pro experience fee
         if aesthetician.experience == "pro":
