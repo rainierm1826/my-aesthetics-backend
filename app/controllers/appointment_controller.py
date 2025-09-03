@@ -93,7 +93,7 @@ class AppointmentController(BaseCRUDController):
             return new_appointment
     
     def _create_walk_in(self, data):
-        required_fields = ["first_name", "last_name", "middle_initial", "phone_number", "sex", "final_payment_method"]
+        required_fields = ["first_name", "last_name", "middle_initial", "sex", "final_payment_method"]
         if not validate_required_fields(data, required_fields):
             return jsonify({"status": False, "message": "missing required fields"}), 400
         
