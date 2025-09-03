@@ -52,6 +52,8 @@ class UserController(BaseCRUDController):
             }), 500
 
     
+    
+    # update your own account
     def update(self, id=None):
         identity = get_jwt_identity()
         claims = get_jwt()
@@ -78,7 +80,6 @@ class UserController(BaseCRUDController):
                 if field in data:
                     setattr(user, field, data[field])
             
-            user.updated_at = datetime.now(timezone.utc)
             db.session.commit()
             
             return jsonify({

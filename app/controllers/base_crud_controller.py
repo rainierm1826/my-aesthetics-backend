@@ -94,6 +94,7 @@ class BaseCRUDController:
     def update(self):
         try:
             data = request.json
+            print(data)
             
             if hasattr(self, "_custom_update"):
                 updated_instance = self._custom_update(data)

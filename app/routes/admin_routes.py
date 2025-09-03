@@ -19,8 +19,8 @@ def get_all_admin():
 def get_admin():
     return admin_controller.get_by_id()
 
-@admin_bp.route("/", methods=["PATCH"])
+@admin_bp.route("", methods=["PATCH"])
 # @jwt_required()
 # @access_control("admin", "owner")
 def update_admin():
-    return admin_controller.update()
+    return admin_controller.owner_update_admin()
