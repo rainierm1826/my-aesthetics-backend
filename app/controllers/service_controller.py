@@ -1,7 +1,7 @@
 from .base_crud_controller import BaseCRUDController
 from ..models.service_model import Service
 from ..models.branch_model import Branch
-from flask import jsonify
+from flask import jsonify, request
 from ..extension import db
 
 class ServiceController(BaseCRUDController):
@@ -16,6 +16,35 @@ class ServiceController(BaseCRUDController):
             sortable_fields={"price": Service.price, "service": Service.service_name, "rate": Service.average_rate},
             joins=[(Branch, Service.branch_id == Branch.branch_id, "left")]
         )
+    
+    def get_service_name(self):
+        try:
+            
+            branch = request.args.get("branch")
+            
+            query = (
+                db.session.query(
+                    Service.service_id,
+                    Service.service_name
+                )
+            )
+            
+            if branch:
+                query = query.filter(Service.branch_id==branch)
+            
+            result = query.all()
+
+            services = [
+                {
+                    "service_id": a.service_id,
+                    "service_name":a.service_name
+                }
+                for a in result
+            ]
+
+            return jsonify({"status": True, "message": "Retrieved successfully", "service": services})
+        except Exception as e:
+            return jsonify({"status": False, "message": "Internal Error", "error": str(e)})
         
     def _custom_create(self, data):
         service = Service.query.filter_by(service_name=data['service_name']).first()

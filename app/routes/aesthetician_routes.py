@@ -27,3 +27,7 @@ def delete_aesthetician():
 # @access_control("admin", "owner")
 def update_aesthetician():
     return aesthetician_controller.update()
+
+@aesthetician_bp.route(rule="/aesthetician-name", methods=["GET"])
+def get_aesthetician_name():
+    return aesthetician_controller.get_aesthetician_name()

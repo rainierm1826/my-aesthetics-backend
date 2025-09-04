@@ -29,3 +29,8 @@ def delete_service():
 # @access_control("owner", "admin")
 def update_service():
     return service_controller.update()
+
+
+@service_bp.route(rule="/service-name", methods=["GET"])
+def get_service_name():
+    return service_controller.get_service_name()

@@ -19,7 +19,7 @@ class AppointmentController(BaseCRUDController):
         super().__init__(
             model=Appointment,
             id_field="appointment_id",
-            filterable_fields={"status": "status", "branch": (Branch, "branch_name"), "aesthetician": (Aesthetician, "aesthetician_name"), "service": (Service, "service_name")},
+            filterable_fields={"status": "status", "branch": (Branch, "branch_id"), "aesthetician": (Aesthetician, "aesthetician_name"), "service": (Service, "service_name")},
             updatable_fields=["status", "aesthetician_rating", "service_rating", "branch_rating", "service_comment", "branch_comment", "aesthetician_comment", "payment_status"],
             joins=[(User, User.user_id==Appointment.user_id, "left"), (WalkIn, WalkIn.walk_in_id==Appointment.walk_in_id, "left"), (Branch, Branch.branch_id==Appointment.branch_id), (Aesthetician, Aesthetician.aesthetician_id==Appointment.aesthetician_id), (Service, Service.service_id==Appointment.service_id)]
         )
@@ -155,6 +155,8 @@ class AppointmentController(BaseCRUDController):
         
     
         if is_walk_in:
+            
+            final_amount=appointment_data["to_pay"]
             down_payment_method = None
             down_payment = 0 
             to_pay = final_amount

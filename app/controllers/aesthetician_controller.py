@@ -2,6 +2,7 @@ from ..controllers.base_crud_controller import BaseCRUDController
 from ..models.aesthetician_model import Aesthetician
 from ..models.branch_model import Branch
 from ..extension import db
+from flask import jsonify, request
 
 class AestheticianController(BaseCRUDController):
     def __init__(self):
@@ -15,7 +16,40 @@ class AestheticianController(BaseCRUDController):
             sortable_fields={"rate": Aesthetician.average_rate, "name":Aesthetician.first_name},
             joins=[(Branch, Branch.branch_id==Aesthetician.branch_id)]
         )
-        
+    
+    def get_aesthetician_name(self):
+        try:
+            
+            branch = request.args.get("branch")
+            
+            query = (
+                db.session.query(
+                    Aesthetician.aesthetician_id,
+                    Aesthetician.first_name,
+                    Aesthetician.last_name,
+                    Aesthetician.middle_initial
+                )
+            )
+            
+            if branch:
+                query = query.filter(Aesthetician.branch_id==branch)
+            
+            result = query.all()
+
+            aestheticians = [
+                {
+                    "aesthetician_id": a.aesthetician_id,
+                    "first_name": a.first_name,
+                    "last_name": a.last_name,
+                    "middle_initial": a.middle_initial,
+                }
+                for a in result
+            ]
+
+            return jsonify({"status": True, "message": "Retrieved successfully", "aesthetician": aestheticians})
+        except Exception as e:
+            return jsonify({"status": False, "message": "Internal Error", "error": str(e)})
+
     def _custom_create(self, data):
         data["availability"] = "available"
         new_aesthetician = Aesthetician(**data)
