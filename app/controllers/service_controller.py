@@ -3,6 +3,7 @@ from ..models.service_model import Service
 from ..models.branch_model import Branch
 from flask import jsonify, request
 from ..extension import db
+from sqlalchemy import or_
 
 class ServiceController(BaseCRUDController):
     def __init__(self):
@@ -19,7 +20,6 @@ class ServiceController(BaseCRUDController):
     
     def get_service_name(self):
         try:
-            
             branch = request.args.get("branch")
             
             query = (
@@ -28,9 +28,10 @@ class ServiceController(BaseCRUDController):
                     Service.service_name
                 )
             )
-            
-            if branch:
-                query = query.filter(Service.branch_id==branch)
+            if branch and branch.lower() != "all":
+                query = query.filter(
+                    or_(Service.branch_id == branch, Service.branch_id == None)
+                )
             
             result = query.all()
 
@@ -45,7 +46,23 @@ class ServiceController(BaseCRUDController):
             return jsonify({"status": True, "message": "Retrieved successfully", "service": services})
         except Exception as e:
             return jsonify({"status": False, "message": "Internal Error", "error": str(e)})
-        
+    
+    def _apply_filters(self, query):
+        # Category filter works normally
+        category = request.args.get("category")
+        if category:
+            query = query.filter(Service.category == category)
+
+        # Branch filter: include services for that branch OR global (NULL)
+        branch = request.args.get("branch")
+        if branch and branch.lower() != "all":
+            query = query.filter(
+                or_(Service.branch_id == branch, Service.branch_id == None)
+            )
+
+        return query
+
+    
     def _custom_create(self, data):
         service = Service.query.filter_by(service_name=data['service_name']).first()
         if service:
