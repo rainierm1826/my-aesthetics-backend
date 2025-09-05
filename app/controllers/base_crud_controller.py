@@ -84,6 +84,7 @@ class BaseCRUDController:
             })
             
         except Exception as e:
+            print(str(e))
             db.session.rollback()
             return jsonify({
                 "status": False,
@@ -95,7 +96,6 @@ class BaseCRUDController:
     def update(self):
         try:
             data = request.json
-            print(data)
             
             if hasattr(self, "_custom_update"):
                 updated_instance = self._custom_update(data)

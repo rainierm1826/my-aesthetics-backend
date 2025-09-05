@@ -87,6 +87,8 @@ class Appointment(db.Model):
                 "service_id": self.service.service_id,
                 "service_name": self.service.service_name,
                 "final_price": self.service.price,
+                "discounted_price":self.service.discounted_price,
+                "discount":self.service.discount,
                 "category": self.service.category,
             },
             "status": self.status,

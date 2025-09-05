@@ -4,13 +4,13 @@ from ..models.walk_in_model import WalkIn
 from ..models.user_model import User
 from ..extension import db
 from flask_jwt_extended import get_jwt_identity
-from flask import jsonify
+from flask import jsonify, request
 from ..models.branch_model import Branch
 from ..models.aesthetician_model import Aesthetician
 from ..models.service_model import Service
 from ..models.voucher_model import Voucher
 from ..helper.functions import validate_required_fields
-from sqlalchemy import func, asc, desc
+from sqlalchemy import func, asc, desc, case
 from datetime import date
 
 class AppointmentController(BaseCRUDController):
@@ -19,6 +19,7 @@ class AppointmentController(BaseCRUDController):
             model=Appointment,
             id_field="appointment_id",
             searchable_fields=["appointment_id", "first_name", "last_name"],
+            sortable_fields={"slot":Appointment.slot_number},
             filterable_fields={"status": "status", "branch": (Branch, "branch_id"), "aesthetician": (Aesthetician, "aesthetician_name"), "service": (Service, "service_name"), "date":"created_at"},
             updatable_fields=["status", "aesthetician_rating", "service_rating", "branch_rating", "service_comment", "branch_comment", "aesthetician_comment", "payment_status"],
             joins=[(User, User.user_id==Appointment.user_id, "left"), (WalkIn, WalkIn.walk_in_id==Appointment.walk_in_id, "left"), (Branch, Branch.branch_id==Appointment.branch_id), (Aesthetician, Aesthetician.aesthetician_id==Appointment.aesthetician_id), (Service, Service.service_id==Appointment.service_id)]
@@ -34,8 +35,16 @@ class AppointmentController(BaseCRUDController):
     #         raise Exception("User not found")
     #     return query.filter(Appointment.user_id == user.user_id)
     
+    def _apply_sorting(self, query):
+        status_order = case(
+            (Appointment.status == "waiting", 1),
+            (Appointment.status == "pending", 2),
+            (Appointment.status == "completed", 3),
+            (Appointment.status == "cancelled", 4),
+            else_=5,
+        )
+        return query.order_by(asc(status_order), asc(Appointment.slot_number))
     
-
     def _custom_update(self, data):
     # Fetch the appointment being updated
         appointment = Appointment.query.get(data["appointment_id"])
@@ -45,8 +54,8 @@ class AppointmentController(BaseCRUDController):
         aesthetician = Aesthetician.query.get(aesthetician_id)
 
         if data.get("status") == "completed":
-            data["payment_status"] = "completed"
             data["status"] = "completed"
+            appointment.payment_status = "completed"
             if aesthetician:
                 aesthetician.availability = "available"
 
@@ -162,12 +171,11 @@ class AppointmentController(BaseCRUDController):
         
     
         if is_walk_in:
-            
             final_amount=appointment_data.get("to_pay", final_amount)
             down_payment_method = None
             down_payment = 0 
             to_pay = final_amount
-            payment_status = "partial"
+            payment_status = "pending"
         else:
             down_payment_method = "xendit"
             down_payment = final_amount * 0.2
@@ -186,8 +194,15 @@ class AppointmentController(BaseCRUDController):
         aesthetician.availability = "working"
         
         # Set the slot number. This resets after a day
-        next_slot = db.session.query(func.count(Appointment.appointment_id)).filter(Appointment.branch_id == appointment_data['branch_id'], Appointment.status == "waiting", func.date(Appointment.created_at) == date.today()).scalar() + 1
-        appointment_data['slot_number'] = next_slot
+        max_slot = db.session.query(func.max(Appointment.slot_number)) \
+            .filter(
+                Appointment.branch_id == appointment_data['branch_id'],
+                func.date(Appointment.created_at) == date.today()
+            ).scalar()
+
+        # Assign next slot number
+        appointment_data['slot_number'] = (max_slot or 0) + 1
+
         
         # Set the calculated amounts
         appointment_data["original_amount"] = original_amount
