@@ -15,6 +15,10 @@ def create_aesthetician():
 @aesthetician_bp.route(rule="", methods=["GET"])
 def get_aestheticians():
     return aesthetician_controller.get_all()
+
+@aesthetician_bp.route(rule="/<string:aesthetician_id>", methods=["GET"])
+def get_aesthetician(aesthetician_id):
+    return aesthetician_controller.get_by_id(aesthetician_id)
     
 @aesthetician_bp.route(rule="", methods=["DELETE"])
 # @jwt_required()

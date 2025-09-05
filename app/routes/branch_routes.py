@@ -32,3 +32,8 @@ def delete_branch():
 # @access_control("owner")
 def update_branch():
     return branch_controller.update()
+
+@branch_bp.route("/<string:branch_id>", methods=["GET"])
+def get_branch(branch_id):
+    return branch_controller.get_by_id(branch_id)
+    

@@ -17,6 +17,10 @@ def create_service():
 def get_services():
     return service_controller.get_all()
 
+@service_bp.route(rule="/<string:service_id>", methods=["GET"])
+def get_service(service_id):
+    return service_controller.get_by_id(service_id)
+
 @service_bp.route(rule="", methods=["DELETE"])
 # @jwt_required()
 # @access_control("owner", "admin")
