@@ -27,12 +27,13 @@ class AestheticianController(BaseCRUDController):
                     Aesthetician.aesthetician_id,
                     Aesthetician.first_name,
                     Aesthetician.last_name,
-                    Aesthetician.middle_initial
+                    Aesthetician.middle_initial,
+                    Aesthetician.experience
                 )
             )
             
             if branch:
-                query = query.filter(Aesthetician.branch_id==branch)
+                query = query.filter(Aesthetician.branch_id==branch, Aesthetician.availability=="available")
             
             result = query.all()
 
@@ -42,6 +43,7 @@ class AestheticianController(BaseCRUDController):
                     "first_name": a.first_name,
                     "last_name": a.last_name,
                     "middle_initial": a.middle_initial,
+                    "experience":a.experience
                 }
                 for a in result
             ]

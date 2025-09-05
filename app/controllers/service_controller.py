@@ -25,7 +25,11 @@ class ServiceController(BaseCRUDController):
             query = (
                 db.session.query(
                     Service.service_id,
-                    Service.service_name
+                    Service.service_name,
+                    Service.price,
+                    Service.discounted_price,
+                    Service.discount_type,
+                    Service.discount
                 )
             )
             if branch and branch.lower() != "all":
@@ -38,7 +42,11 @@ class ServiceController(BaseCRUDController):
             services = [
                 {
                     "service_id": a.service_id,
-                    "service_name":a.service_name
+                    "service_name":a.service_name,
+                    "price":a.price,
+                    "discounte_type":a.discount_type,
+                    "discount":a.discount,
+                    "discounted_price":a.discounted_price
                 }
                 for a in result
             ]

@@ -12,14 +12,14 @@ from ..models.voucher_model import Voucher
 from ..helper.functions import validate_required_fields
 from sqlalchemy import func, asc, desc
 from datetime import date
-from flask import request
 
 class AppointmentController(BaseCRUDController):
     def __init__(self):
         super().__init__(
             model=Appointment,
             id_field="appointment_id",
-            filterable_fields={"status": "status", "branch": (Branch, "branch_id"), "aesthetician": (Aesthetician, "aesthetician_name"), "service": (Service, "service_name")},
+            searchable_fields=["appointment_id", "first_name", "last_name"],
+            filterable_fields={"status": "status", "branch": (Branch, "branch_id"), "aesthetician": (Aesthetician, "aesthetician_name"), "service": (Service, "service_name"), "date":"created_at"},
             updatable_fields=["status", "aesthetician_rating", "service_rating", "branch_rating", "service_comment", "branch_comment", "aesthetician_comment", "payment_status"],
             joins=[(User, User.user_id==Appointment.user_id, "left"), (WalkIn, WalkIn.walk_in_id==Appointment.walk_in_id, "left"), (Branch, Branch.branch_id==Appointment.branch_id), (Aesthetician, Aesthetician.aesthetician_id==Appointment.aesthetician_id), (Service, Service.service_id==Appointment.service_id)]
         )
@@ -62,7 +62,6 @@ class AppointmentController(BaseCRUDController):
         
         db.session.commit()
         return appointment
-
          
     def _custom_create(self, data):
         # Walk-in logic
@@ -111,7 +110,8 @@ class AppointmentController(BaseCRUDController):
         data["walk_in_id"] = walk_in_id
         data["user_id"] = user_id
         data['status'] = "waiting"
-        
+
+        print(data)
         # Remove WalkIn-specific fields from data before creating appointment
         walk_in_fields = ["first_name", "last_name", "middle_initial", "phone_number", "sex"]
         appointment_data = {key: value for key, value in data.items() if key not in walk_in_fields}
@@ -128,7 +128,7 @@ class AppointmentController(BaseCRUDController):
         if aesthetician.branch_id != appointment_data['branch_id']:
             return jsonify({"status": False, "message": "aesthetician is not available in this branch"}), 503
         
-        if service.branch_id != appointment_data['branch_id']:
+        if service.branch_id is not None and service.branch_id != appointment_data['branch_id']:
             return jsonify({"status": False, "message": "service is not available in this branch"}), 503
         
         # Calculate original amount (base service price)
@@ -146,7 +146,14 @@ class AppointmentController(BaseCRUDController):
             voucher = Voucher.query.filter_by(voucher_code=appointment_data["voucher_code"]).first()
             if not voucher:
                 return jsonify({"status": False, "message": "voucher does not exist"}), 404
-            final_amount -= voucher.discount_amount
+            
+            
+            discount_type = voucher.discount_type
+            discount_amount = voucher.discount_amount
+            if discount_type == "fixed":
+                final_amount -= discount_amount
+            else:
+                final_amount -= (final_amount * (discount_amount/100))
             voucher.quantity -= 1
 
         
@@ -156,12 +163,11 @@ class AppointmentController(BaseCRUDController):
     
         if is_walk_in:
             
-            final_amount=appointment_data["to_pay"]
+            final_amount=appointment_data.get("to_pay", final_amount)
             down_payment_method = None
             down_payment = 0 
             to_pay = final_amount
             payment_status = "partial"
-
         else:
             down_payment_method = "xendit"
             down_payment = final_amount * 0.2
@@ -192,6 +198,7 @@ class AppointmentController(BaseCRUDController):
         new_appointment = Appointment(**appointment_data)
         db.session.add(new_appointment)
         return new_appointment
+      
     
     def _update_average_rating(self, model, model_id_field, appointment_fk_field, rating_field):
         ids = db.session.query(model_id_field).distinct().all()

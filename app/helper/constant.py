@@ -2,7 +2,7 @@ from sqlalchemy import Enum
 
 
 # enums
-payment_method_enum = Enum("cash", "xendit", name="payment_method_enum")
+payment_method_enum = Enum("cash", "e-wallet", "bank-transfer", "credit-card", "debit-card", name="payment_method_enum")
 payment_status_enum = Enum("completed", "partial", "pending", name="payment_status_enum")
 branch_status_enum = Enum("active", "closed", name="branch_status_enum")
 appointment_status_enum = Enum("cancelled", "completed", "pending", "waiting", name="appointment_status_enum")

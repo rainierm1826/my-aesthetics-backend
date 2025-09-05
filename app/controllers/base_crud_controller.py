@@ -38,6 +38,7 @@ class BaseCRUDController:
                 self.resource_name: new_instance.to_dict()
             }), 201
         except ValueError as e:
+            print(str(e))
             db.session.rollback()
             return jsonify({
                 "status": False,

@@ -1,10 +1,10 @@
 from app import db
 from ..helper.functions import generate_id
-from datetime import datetime, timezone
+from datetime import date
 from ..helper.constant import payment_method_enum, payment_status_enum, appointment_status_enum
 
 class Appointment(db.Model):
-    appointment_id = db.Column(db.String(255), primary_key=True, default=generate_id("APPOINTMENT"))
+    appointment_id = db.Column(db.String(255), primary_key=True, default=lambda:generate_id("APPOINTMENT"))
         
     # foreign keys
     user_id = db.Column(db.String(255), db.ForeignKey("user.user_id"), nullable=True)
@@ -40,8 +40,8 @@ class Appointment(db.Model):
     status = db.Column(appointment_status_enum, nullable=False)
    
    
-    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    created_at = db.Column(db.Date, default=date.today)
+    updated_at = db.Column(db.Date, default=date.today, onupdate=date.today)
         
     
     # relationships
@@ -61,12 +61,16 @@ class Appointment(db.Model):
                 "first_name": self.user.first_name,
                 "last_name": self.user.last_name,
                 "middle_initial": self.user.middle_initial,
+                "phone_number": self.user.phone_number,
+                "sex": self.user.sex,
             } if self.user else None,
             "walk_in": {
                 "walk_in_id": self.walk_in.walk_in_id,
                 "first_name": self.walk_in.first_name,
                 "last_name": self.walk_in.last_name,
                 "middle_initial": self.walk_in.middle_initial,
+                "phone_number": self.walk_in.phone_number,
+                "sex": self.walk_in.sex,
             } if self.walk_in else None,
             "branch": {
                 "branch_id": self.branch_id,
