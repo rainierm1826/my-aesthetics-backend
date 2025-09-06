@@ -29,7 +29,7 @@ class AestheticianController(BaseCRUDController):
                     Aesthetician.last_name,
                     Aesthetician.middle_initial,
                     Aesthetician.experience
-                )
+                ).filter_by(isDeleted=False)
             )
             
             if branch:

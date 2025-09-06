@@ -30,7 +30,7 @@ class ServiceController(BaseCRUDController):
                     Service.discounted_price,
                     Service.discount_type,
                     Service.discount
-                )
+                ).filter_by(isDeleted=False)
             )
             if branch and branch.lower() != "all":
                 query = query.filter(

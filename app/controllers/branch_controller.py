@@ -19,7 +19,7 @@ class BranchController(BaseCRUDController):
         
     def get_branch_name(self):
         try:
-            result = db.session.query(Branch.branch_id, Branch.branch_name).all()
+            result = db.session.query(Branch.branch_id, Branch.branch_name).filter_by(isDeleted=False).all()
             branches = [{"branch_id": branch.branch_id, "branch_name": branch.branch_name } for branch in result]
             response = {"status": True, "message": "Retrieved successfully", 'branch': branches}
             return jsonify(response)
