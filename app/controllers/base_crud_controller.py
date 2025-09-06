@@ -2,6 +2,7 @@ from flask import request, jsonify
 from ..extension import db
 from sqlalchemy import or_, asc, desc
 from ..helper.functions import validate_required_fields
+import cloudinary.uploader
 
 class BaseCRUDController:
     def __init__(self, model, id_field, required_fields=None, searchable_fields=None, filterable_fields=None, updatable_fields=None, sortable_fields=None, joins=None):
@@ -18,10 +19,17 @@ class BaseCRUDController:
     # public methods for CRUD operations
     def create(self):
         try:
-            data = request.json
+            data = request.form.to_dict() 
+            image = request.files.get("image")
+            
+            if image:
+                upload_result = cloudinary.uploader.upload(image)
+                data["image"] = upload_result["secure_url"] 
+                
             # check if the required fields are present
             if not validate_required_fields(data, self.required_fields):
                 return jsonify({"status": False, "message": "missing required fields"}), 400
+        
             
             if hasattr(self, "_custom_create"):
                 new_instance = self._custom_create(data)
@@ -95,7 +103,12 @@ class BaseCRUDController:
     # generic update method
     def update(self):
         try:
-            data = request.json
+            data = request.form.to_dict() 
+            image = request.files.get("image")
+            
+            if image:
+                upload_result = cloudinary.uploader.upload(image)
+                data["image"] = upload_result["secure_url"] 
             
             if hasattr(self, "_custom_update"):
                 updated_instance = self._custom_update(data)
