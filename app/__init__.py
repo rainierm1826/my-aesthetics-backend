@@ -3,6 +3,9 @@ from .extension import db, jwt, migrate
 from flask_cors import CORS
 from .config import Config
 import os
+import cloudinary
+import cloudinary.uploader
+from cloudinary.utils import cloudinary_url
 from dotenv import load_dotenv
 
 
@@ -14,6 +17,13 @@ def create_app():
     db.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
+    
+    cloudinary.config( 
+    cloud_name = "dyvkhz2id", 
+    api_key = "287871737861739", 
+    api_secret = "<your_api_secret>", # Click 'View API Keys' above to copy your API secret
+    secure=True
+)
 
     CORS(app, origins=["http://localhost:3000", "https://my-aesthetics-three.vercel.app"], supports_credentials=True)
 
