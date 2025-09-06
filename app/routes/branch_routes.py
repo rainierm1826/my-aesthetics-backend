@@ -15,19 +15,19 @@ def get_branches():
 def get_branch_name():
     return branch_controller.get_branch_name()
 
-@branch_bp.route("/", methods=["POST"])
+@branch_bp.route("", methods=["POST"])
 # @jwt_required()
 # @access_control("owner")
 def create_branch():
     return branch_controller.create()
 
-@branch_bp.route("/", methods=["DELETE"])
+@branch_bp.route("", methods=["DELETE"])
 # @jwt_required()
 # @access_control("owner")
 def delete_branch():
     return branch_controller.delete()
 
-@branch_bp.route("/", methods=["PATCH"])
+@branch_bp.route("", methods=["PATCH"])
 # @jwt_required()
 # @access_control("owner")
 def update_branch():

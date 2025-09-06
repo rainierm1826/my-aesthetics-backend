@@ -22,6 +22,9 @@ class BaseCRUDController:
             data = request.form.to_dict() 
             image = request.files.get("image")
             
+            print("form data", data)
+            print("required fields", self.required_fields) 
+            
             if image:
                 upload_result = cloudinary.uploader.upload(image)
                 data["image"] = upload_result["secure_url"] 
@@ -46,7 +49,6 @@ class BaseCRUDController:
                 self.resource_name: new_instance.to_dict()
             }), 201
         except ValueError as e:
-            print(str(e))
             db.session.rollback()
             return jsonify({
                 "status": False,
@@ -54,7 +56,7 @@ class BaseCRUDController:
                 "error": str(e)
             }), 400
         except Exception as e:
-            print(str(e))
+            print(e)
             db.session.rollback()
             return jsonify({
                 "status": False,
@@ -105,6 +107,9 @@ class BaseCRUDController:
         try:
             data = request.form.to_dict() 
             image = request.files.get("image")
+            for field, value in data.items():
+                if isinstance(value, str) and value.lower() in ('true', 'false', '1', '0'):
+                    data[field] = value.lower() in ('true', '1')
             
             if image:
                 upload_result = cloudinary.uploader.upload(image)
@@ -143,6 +148,7 @@ class BaseCRUDController:
                 self.resource_name: instance.to_dict()
             })
         except Exception as e:
+            print(str(e))
             db.session.rollback()
             return jsonify({
                 "status": False,
