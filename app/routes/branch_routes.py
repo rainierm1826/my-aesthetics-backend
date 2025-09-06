@@ -21,7 +21,7 @@ def get_branch_name():
 def create_branch():
     return branch_controller.create()
 
-@branch_bp.route("", methods=["DELETE"])
+@branch_bp.route("", methods=["PATCH"])
 # @jwt_required()
 # @access_control("owner")
 def delete_branch():
@@ -33,7 +33,7 @@ def delete_branch():
 def update_branch():
     return branch_controller.update()
 
-@branch_bp.route("/<string:branch_id>", methods=["GET"])
+@branch_bp.route("<string:branch_id>", methods=["GET"])
 def get_branch(branch_id):
     return branch_controller.get_by_id(branch_id)
     

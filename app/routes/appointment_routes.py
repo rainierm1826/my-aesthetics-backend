@@ -29,7 +29,7 @@ def get_appointment():
 def update_appointment():
     return appointment_controller.update()
 
-@appointment_bp.route("", methods=["DELETE"])
+@appointment_bp.route("", methods=["PATCH"])
 # @jwt_required()
 # @access_control("admin", "owner")
 def delete_appointment():

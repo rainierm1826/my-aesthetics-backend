@@ -7,12 +7,13 @@ class Branch(db.Model):
     branch_id = db.Column(db.String(255), primary_key=True, default=lambda: generate_id("ADDRESS"))
     address_id = db.Column(db.String(255), db.ForeignKey("address.address_id"))
     branch_name = db.Column(db.String(255), nullable=False)
-    image = db.Column(db.Text, nullable=False)
+    image = db.Column(db.Text, nullable=True)
     average_rate = db.Column(db.Float, nullable=False, default=0.0)
     status = db.Column(branch_status_enum, nullable=False, default="active")
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
-    
+    isDeleted = db.Column(db.Boolean, default=False)
+
     address = db.relationship("Address", backref="branches")
     
     def to_dict(self):

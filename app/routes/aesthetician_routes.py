@@ -20,7 +20,7 @@ def get_aestheticians():
 def get_aesthetician(aesthetician_id):
     return aesthetician_controller.get_by_id(aesthetician_id)
     
-@aesthetician_bp.route(rule="", methods=["DELETE"])
+@aesthetician_bp.route(rule="", methods=["PATCH"])
 # @jwt_required()
 # @access_control("admin", "owner")
 def delete_aesthetician():

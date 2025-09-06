@@ -13,6 +13,7 @@ class Admin(db.Model):
     phone_number = db.Column(db.String(255))
     birthday = db.Column("birthday", db.DateTime)
     image = db.Column(db.Text)
+    isDeleted = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     

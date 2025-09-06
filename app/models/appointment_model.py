@@ -39,7 +39,7 @@ class Appointment(db.Model):
 
     status = db.Column(appointment_status_enum, nullable=False)
    
-   
+    isDeleted = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.Date, default=date.today)
     updated_at = db.Column(db.Date, default=date.today, onupdate=date.today)
         

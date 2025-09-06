@@ -14,6 +14,7 @@ class User(db.Model):
     image = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    isDeleted = db.Column(db.Boolean, default=False)
 
     auth = db.relationship("Auth", backref="users")
     

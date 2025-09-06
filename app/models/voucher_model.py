@@ -13,6 +13,8 @@ class Voucher(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     valid_from = db.Column(db.DateTime, nullable=False)
     valid_until = db.Column(db.DateTime, nullable=False)
+    isDeleted = db.Column(db.Boolean, default=False)
+
     
     def to_dict(self):
         return {

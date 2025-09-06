@@ -11,11 +11,12 @@ class Aesthetician(db.Model):
     last_name = db.Column(db.String(255), nullable=False)
     middle_initial = db.Column(CHAR(1))
     phone_number = db.Column(db.String(255))
-    image = db.Column(db.Text, nullable=False)
+    image = db.Column(db.Text, nullable=True)
     sex = db.Column(sex_enum, nullable=False)
     experience = db.Column(experience_enum, nullable=False)
     average_rate = db.Column(db.Float, nullable=True, default=0)
     availability = db.Column(availability_enum, nullable=False)
+    isDeleted = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     

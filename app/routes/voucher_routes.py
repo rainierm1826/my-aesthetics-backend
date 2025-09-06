@@ -25,7 +25,7 @@ def get_vouchers():
 def update_voucher():
     return voucher_controller.update()
 
-@voucher_bp.route("", methods=["DELETE"])
+@voucher_bp.route("", methods=["PATCH"])
 # @jwt_required()
 # @access_control("admin", "owner")
 def delete_voucher():

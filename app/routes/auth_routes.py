@@ -40,7 +40,7 @@ def signout():
 # def update_password():
 #     return auth_controller.update()
 
-@auth_bp.route("/delete-admin", methods=["DELETE"])
+@auth_bp.route("/delete-admin", methods=["PATCH"])
 # @jwt_required()
 # @access_control("owner")
 def delete_admin():

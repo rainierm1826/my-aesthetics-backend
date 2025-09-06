@@ -22,32 +22,34 @@ class BaseCRUDController:
             data = request.form.to_dict() 
             image = request.files.get("image")
             
-            print("form data", data)
-            print("required fields", self.required_fields) 
-            
-            if image:
-                upload_result = cloudinary.uploader.upload(image)
-                data["image"] = upload_result["secure_url"] 
-                
-            # check if the required fields are present
+            # Check required fields first
             if not validate_required_fields(data, self.required_fields):
                 return jsonify({"status": False, "message": "missing required fields"}), 400
-        
             
+            # Create the instance without the image
             if hasattr(self, "_custom_create"):
                 new_instance = self._custom_create(data)
-                # If the custom create returns a tuple (e.g., (response, status)), return it directly
                 if isinstance(new_instance, tuple):
                     return new_instance
             else:
                 new_instance = self.model(**data)
                 db.session.add(new_instance)
+            
+            # Commit first
             db.session.commit()
+            
+            # Upload image after commit
+            if image:
+                upload_result = cloudinary.uploader.upload(image)
+                new_instance.image = upload_result["secure_url"]
+                db.session.commit()
+            
             return jsonify({
                 "status": True,
                 "message": f"{self.resource_name} created successfully",
                 self.resource_name: new_instance.to_dict()
             }), 201
+
         except ValueError as e:
             db.session.rollback()
             return jsonify({
@@ -63,11 +65,15 @@ class BaseCRUDController:
                 "message": "internal error",
                 "error": str(e)
             }), 500
+
     
     # generic get all method 
     def get_all(self):
         try:
             query = self.model.query
+            
+            if hasattr(self.model, "isDeleted"):
+                query = query.filter_by(isDeleted=False)
             
             query = self._apply_joins(query)
             
@@ -162,25 +168,33 @@ class BaseCRUDController:
             data = request.json            
             if self.id_field not in data:
                 return jsonify({
-                "status": False,
-                "message": f"missing {self.resource_name} id"
-            }), 404
+                    "status": False,
+                    "message": f"missing {self.resource_name} id"
+                }), 404
             
-            instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+            instance = (
+                self.model.query
+                .filter(getattr(self.model, self.id_field) == data[self.id_field])
+                .first()
+            )
             
             if not instance:
                 return jsonify({
-                "status": False,
-                "message": f"{self.resource_name} not found"
-            }), 404
+                    "status": False,
+                    "message": f"{self.resource_name} not found"
+                }), 404
             
-            db.session.delete(instance)
-            db.session.commit()
+            if hasattr(instance, "isDeleted"):
+                instance.isDeleted = True
+                db.session.commit()
+            else:
+                db.session.delete(instance)
+                db.session.commit()
             
             return jsonify({
                 "status": True,
                 "message": f"{self.resource_name} deleted successfully"
-            }), 201
+            }), 200
             
         except Exception as e:
             db.session.rollback()
@@ -188,12 +202,13 @@ class BaseCRUDController:
                 "status": False,
                 "message": "internal error",
                 "error": str(e)
-            }), 500 
+            }), 500
+
     
     
     def get_by_id(self, id):
         try:
-            instance = self.model.query.filter(getattr(self.model, self.id_field) == id).first()
+            instance = self.model.query.filter(getattr(self.model, self.id_field) == id).filter_by(isDeleted=False).first()
             if not instance:
                 return jsonify({
                     "status": False,

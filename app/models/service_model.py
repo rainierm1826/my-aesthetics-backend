@@ -15,11 +15,12 @@ class Service(db.Model):
     discount_type = db.Column(discount_type_enum, nullable=True)
     discount = db.Column(Float, nullable=True)
     discounted_price = db.Column(Float, nullable=False)
-    image = db.Column(db.Text, nullable=False)
+    image = db.Column(db.Text, nullable=True)
     average_rate = db.Column(Float, nullable=True, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
-    
+    isDeleted = db.Column(db.Boolean, default=False)
+
     branch = db.relationship("Branch", backref="services")
 
     

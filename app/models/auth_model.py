@@ -13,6 +13,7 @@ class Auth(db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    isDeleted = db.Column(db.Boolean, default=False)
 
     role = db.relationship("Role", backref="auths")
     admins = db.relationship("Admin", back_populates="auth", cascade="all, delete-orphan", passive_deletes=True)
