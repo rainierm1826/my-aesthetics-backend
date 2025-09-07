@@ -1,10 +1,10 @@
 from app import db
 from datetime import datetime, timezone
-from ..helper.functions import generate_id
 from ..helper.constant import branch_status_enum
+from uuid import uuid4
 
 class Branch(db.Model):
-    branch_id = db.Column(db.String(255), primary_key=True, default=lambda: generate_id("ADDRESS"))
+    branch_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
     address_id = db.Column(db.String(255), db.ForeignKey("address.address_id"))
     branch_name = db.Column(db.String(255), nullable=False)
     image = db.Column(db.Text, nullable=True)

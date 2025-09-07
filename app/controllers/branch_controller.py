@@ -10,9 +10,9 @@ class BranchController(BaseCRUDController):
         super().__init__(
             model=Branch,
             id_field="branch_id",
-            required_fields=["branch_name", "image", "address"],
+            required_fields=["branch_name", "barangay", "city", "province", "region", "lot"],
             searchable_fields=["branch_name"],
-            updatable_fields=["branch_name", "image", "address.barangay", "address.city", "address.province", "address.region", "address.lot"],
+            updatable_fields=["branch_name", "barangay", "city", "province", "region", "lot"],
             sortable_fields={"rate": Branch.average_rate},
             joins=[(Address, Address.address_id == Branch.address_id)]
         )
@@ -26,22 +26,6 @@ class BranchController(BaseCRUDController):
         except Exception as e:
             return jsonify({"status": False, "message": "Internal Error", "error": str(e)})
         
-    def create(self):
-        try:
-            data = request.form.to_dict()
-            branch = Branch.query.filter_by(branch_name=data["branch_name"]).first()
-            if branch:
-                return jsonify({"status": False, "message": "branch name already exist"}), 409
-            return super().create()
-            
-        except Exception as e:
-            print(str(e))
-            db.session.rollback()
-            return jsonify({
-                "status": False,
-                "message": "internal error",
-                "error": str(e)
-            }), 500
 
     def _custom_create(self, data):
         address_fields = ['region', 'province', 'city', 'barangay', 'lot']
@@ -60,20 +44,30 @@ class BranchController(BaseCRUDController):
         branch = self.model(**data)
         db.session.add(branch)
         db.session.flush()
-        print(data)  
         return branch
 
     def _custom_update(self, data):
+        
         instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+        print(data)
+        # Handle nested address updates
+        if "address_id" in data:
+            address = Address.query.filter_by(address_id=data["address_id"]).first()  # Added .first()
+            
+            if address:
+                address_fields = ["region", "province", "city", "barangay", "lot"]
+                print("address", address_fields)
+                for field in address_fields:  # Iterate through fields, not 
+                    if field in data:  
+                        if hasattr(address, field):
+                            setattr(address, field, data[field])  # 
         
-        if "address" in data and instance.address:
-            address_data = data["address"]
-            for field, value in address_data.items():
-                if hasattr(instance.address, field):
-                    setattr(instance.address, field, value)
-        
+        # Handle direct field updates (excluding nested fields)
         for field in self.updatable_fields:
-            if field in data and "." not in field:  
+            if field in data and "." not in field:  # Skip nested fields like "address.barangay"
                 setattr(instance, field, data[field])
         
         return instance
+        
+
+    

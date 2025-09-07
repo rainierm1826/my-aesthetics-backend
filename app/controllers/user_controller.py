@@ -5,7 +5,8 @@ from ..models.admin_model import Admin
 from flask_jwt_extended import get_jwt_identity, get_jwt
 from flask import jsonify, request
 from ..extension import db
-from datetime import datetime, timezone
+from datetime import datetime
+import cloudinary.uploader
 
 
 class UserController(BaseCRUDController):
@@ -54,7 +55,7 @@ class UserController(BaseCRUDController):
     
     
     # update your own account
-    def update(self, id=None):
+    def update(self):
         identity = get_jwt_identity()
         claims = get_jwt()
         role = claims.get("role")
@@ -68,13 +69,18 @@ class UserController(BaseCRUDController):
             user = Owner.query.filter_by(account_id=identity).first()
         else:
             return jsonify({"status": False, "message": "Invalid role"}), 400
+
         
         if not user:
             return jsonify({"status": False, "message": "user not found"}), 404
         
         try:
-            data = request.get_json()
-            
+            data = request.form.to_dict()
+            image = request.files.get("image")
+            if image:
+                upload_result = cloudinary.uploader.upload(image)
+                data["image"] = upload_result["secure_url"]
+                
             # Update only the allowed fields
             for field in self.updatable_fields:
                 if field in data:

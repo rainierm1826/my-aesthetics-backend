@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from ..extension import db
 from sqlalchemy import or_, asc, desc
-from ..helper.functions import validate_required_fields
+from ..helper.functions import validate_required_fields, convert_formdata_types
 import cloudinary.uploader
 
 class BaseCRUDController:
@@ -19,9 +19,15 @@ class BaseCRUDController:
     # public methods for CRUD operations
     def create(self):
         try:
-            data = request.form.to_dict() 
-            image = request.files.get("image")
+            if request.is_json:
+                data = request.get_json()
+                image = None
+            else:
+                data = request.form.to_dict()
+                image = request.files.get("image")
             
+            data = convert_formdata_types(data)
+          
             # Check required fields first
             if not validate_required_fields(data, self.required_fields):
                 return jsonify({"status": False, "message": "missing required fields"}), 400
@@ -111,70 +117,63 @@ class BaseCRUDController:
     # generic update method
     def update(self):
         try:
-            data = request.form.to_dict() 
-            image = request.files.get("image")
-            for field, value in data.items():
-                if isinstance(value, str) and value.lower() in ('true', 'false', '1', '0'):
-                    data[field] = value.lower() in ('true', '1')
-            
-            if image:
-                upload_result = cloudinary.uploader.upload(image)
-                data["image"] = upload_result["secure_url"] 
-            
-            if hasattr(self, "_custom_update"):
-                updated_instance = self._custom_update(data)
-
-                if isinstance(updated_instance, tuple):
-                    return updated_instance
-                elif updated_instance is not None:
-                    # If custom update returns an instance, use it
-                    instance = updated_instance
-                else:
-                    # If custom update returns None, get instance normally
-                    instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+            # Use form-data only
+            if request.is_json:
+                data = request.get_json()
+                image = None
             else:
-                # No custom update method, get instance normally
-                instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
+                data = request.form.to_dict()
+                image = request.files.get("image")
             
+            data=convert_formdata_types(data)
+                        
+            if hasattr(self, "_custom_update"):
+                new_instance = self._custom_update(data)
+                if isinstance(new_instance, tuple):
+                    return new_instance
+
+            # Get the instance
+            instance = self.model.query.filter(
+                getattr(self.model, self.id_field) == data[self.id_field]
+            ).first()
+
             if not instance:
-                return jsonify({
-                    "status": False,
-                    "message": f"{self.resource_name} not found"
-                }), 404
-            
-            # Update the fields
+                return jsonify({"status": False, "message": f"{self.resource_name} not found"}), 404
+
+            # Update other allowed fields
             for field in self.updatable_fields:
                 if field in data:
                     setattr(instance, field, data[field])
-            
+
+            # Update image if uploaded
+            if image:
+                upload_result = cloudinary.uploader.upload(image)
+                instance.image = upload_result["secure_url"]
+
             db.session.commit()
+
             return jsonify({
                 "status": True,
                 "message": f"{self.resource_name} updated successfully",
                 self.resource_name: instance.to_dict()
-            })
+            }), 200
+
         except Exception as e:
-            print(str(e))
             db.session.rollback()
+            print(e)
             return jsonify({
                 "status": False,
                 "message": "internal error",
                 "error": str(e)
             }), 500
-        
-    # generic delete method
-    def delete(self):
+
+    # generic soft delete method
+    def delete(self, id):
         try:
-            data = request.json            
-            if self.id_field not in data:
-                return jsonify({
-                    "status": False,
-                    "message": f"missing {self.resource_name} id"
-                }), 404
             
             instance = (
                 self.model.query
-                .filter(getattr(self.model, self.id_field) == data[self.id_field])
+                .filter(getattr(self.model, self.id_field) == id)
                 .first()
             )
             

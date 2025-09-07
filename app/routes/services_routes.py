@@ -21,11 +21,11 @@ def get_services():
 def get_service(service_id):
     return service_controller.get_by_id(service_id)
 
-@service_bp.route(rule="", methods=["PATCH"])
+@service_bp.route(rule="/<string:id>", methods=["PATCH"])
 # @jwt_required()
 # @access_control("owner", "admin")
-def delete_service():
-    return service_controller.delete()
+def delete_service(id):
+    return service_controller.delete(id)
 
 
 @service_bp.route(rule="", methods=["PATCH"])

@@ -6,7 +6,36 @@ from email.mime.text import MIMEText
 import os
 
 
+def convert_formdata_types(form_data):
+    converted_data = {}
+    
+    for key, value in form_data.items():
+        if value is None or not isinstance(value, str):
+            converted_data[key] = value
+            continue
+            
+        value = value.strip()
+        
+        if value.lower() in ('true', 'false'):
+            converted_data[key] = value.lower() == 'true'
+        
+        elif value.isdigit() or (value.startswith('-') and value[1:].isdigit()):
+            converted_data[key] = int(value)
+        
+        elif is_float(value):
+            converted_data[key] = float(value)        
+        else:
+            converted_data[key] = value
+    
+    return converted_data
 
+
+def is_float(value):
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False
 
 def generate_voucher_code():
     random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))

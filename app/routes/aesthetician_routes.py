@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, jsonify
 from ..controllers.aesthetician_controller import AestheticianController
 from flask_jwt_extended import jwt_required
 from ..helper.decorators import access_control
@@ -20,11 +20,11 @@ def get_aestheticians():
 def get_aesthetician(aesthetician_id):
     return aesthetician_controller.get_by_id(aesthetician_id)
     
-@aesthetician_bp.route(rule="", methods=["PATCH"])
+@aesthetician_bp.route(rule="/<string:id>", methods=["PATCH"])
 # @jwt_required()
 # @access_control("admin", "owner")
-def delete_aesthetician():
-    return aesthetician_controller.delete()
+def delete_aesthetician(id):
+    return aesthetician_controller.delete(id)
 
 @aesthetician_bp.route(rule="", methods=["PATCH"])
 # @jwt_required()

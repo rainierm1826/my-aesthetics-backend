@@ -10,10 +10,10 @@ class ServiceController(BaseCRUDController):
         super().__init__(
             model=Service,
             id_field="service_id",
-            required_fields=["service_name", "price", "is_sale", "category", "image"],
+            required_fields=["service_name", "price", "is_sale", "category"],
             searchable_fields=["service_name"],
             filterable_fields={"category": "category", "branch": (Branch, "branch_id")},
-            updatable_fields=["service_name", "branch_id", "original_price", "is_sale", "discount_percentage", "category", "image", "description"],
+            updatable_fields=["service_name", "branch_id", "discounted_price", "is_sale", "discount_type", "category", "image", "description", "price"],
             sortable_fields={"price": Service.price, "service": Service.service_name, "rate": Service.average_rate},
             joins=[(Branch, Service.branch_id == Branch.branch_id, "left")]
         )
@@ -72,13 +72,14 @@ class ServiceController(BaseCRUDController):
 
     
     def _custom_create(self, data):
-        service = Service.query.filter_by(service_name=data['service_name']).first()
-        if service:
-            return jsonify({"status": False, "message": "service name already exist"}), 409
+
+        data["price"] = float(request.form.get("price"))
+        data['is_sale'] = request.form.get("is_sale", str(data.get('is_sale', False))) == "true"
+        data["discount"] = float(request.form.get("discount"))
         
         new_service = Service(**data)
-        db.session.add(new_service)
         
+        db.session.add(new_service)
         return new_service
     
         

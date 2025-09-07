@@ -25,8 +25,8 @@ def get_vouchers():
 def update_voucher():
     return voucher_controller.update()
 
-@voucher_bp.route("", methods=["PATCH"])
+@voucher_bp.route("/<string:id>", methods=["PATCH"])
 # @jwt_required()
 # @access_control("admin", "owner")
-def delete_voucher():
-    return voucher_controller.delete()
+def delete_voucher(id):
+    return voucher_controller.delete(id)
