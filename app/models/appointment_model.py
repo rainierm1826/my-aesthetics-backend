@@ -37,7 +37,7 @@ class Appointment(db.Model):
     category_snapshot = db.Column(db.String(255), nullable=False)
     discount_type_snapshot = db.Column(discount_type_enum, nullable=True)
     discount_snapshot = db.Column(Float, nullable=True)
-    discounted_price_snapshot = db.Column(Float, nullable=False)
+    discounted_price_snapshot = db.Column(Float, nullable=True)
     aesthetician_name_snapshot = db.Column(db.String(255), nullable=False)
     is_pro_snapshot = db.Column(db.Boolean, nullable=False, default=False)
     branch_name_snapshot = db.Column(db.String(255), nullable=False)
