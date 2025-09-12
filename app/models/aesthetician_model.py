@@ -1,11 +1,11 @@
 from app import db
-from ..helper.functions import generate_id
 from datetime import datetime, timezone
 from sqlalchemy import CHAR
 from ..helper.constant import sex_enum, experience_enum, availability_enum
+from uuid import uuid4
 
 class Aesthetician(db.Model):
-    aesthetician_id = db.Column(db.String(255), primary_key=True, default=lambda: generate_id("AESTHETICIAN"))
+    aesthetician_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=False)
     first_name = db.Column(db.String(255), nullable=False)
     last_name = db.Column(db.String(255), nullable=False)

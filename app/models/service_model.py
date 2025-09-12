@@ -1,11 +1,11 @@
 from app import db
-from ..helper.functions import generate_id
+from uuid import uuid4
 from datetime import datetime, timezone
 from sqlalchemy import Float
 from ..helper.constant import discount_type_enum
 
 class Service(db.Model):
-    service_id = db.Column(db.String(255), primary_key=True, default=lambda:generate_id("SERVICE"))
+    service_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=True)
     service_name = db.Column(db.String(255), nullable=False)
     category = db.Column(db.String(255), nullable=False)

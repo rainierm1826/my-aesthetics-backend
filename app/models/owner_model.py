@@ -1,10 +1,9 @@
 from ..extension import db
 from datetime import datetime, timezone
-from ..helper.functions import generate_id
-
+from uuid import uuid4
 
 class Owner(db.Model):
-    owner_id = db.Column(db.String(255), primary_key=True, default=lambda:generate_id("OWNER"))
+    owner_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
     account_id = db.Column(db.String(255), db.ForeignKey("auth.account_id"), nullable=False)
     first_name = db.Column(db.String(255) )
     last_name = db.Column(db.String(255) )
