@@ -28,8 +28,8 @@ class Service(db.Model):
     def to_dict(self):
         return {
             "service_id": self.service_id,
-            "branch_id": self.branch_id,
             "branch":{
+              "branch_id": self.branch.branch_id,
               "branch_name": self.branch.branch_name if self.branch_id else None
             },
             "service_name": self.service_name,

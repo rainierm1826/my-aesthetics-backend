@@ -1,7 +1,9 @@
 from app import db
 from ..helper.functions import generate_id
 from datetime import date
-from ..helper.constant import payment_method_enum, payment_status_enum, appointment_status_enum
+from ..helper.constant import payment_method_enum, payment_status_enum, appointment_status_enum, discount_type_enum
+from sqlalchemy import Float
+
 
 class Appointment(db.Model):
     appointment_id = db.Column(db.String(255), primary_key=True, default=lambda:generate_id("APPOINTMENT"))
@@ -25,14 +27,31 @@ class Appointment(db.Model):
     branch_comment = db.Column(db.Text, nullable=True)
     aesthetician_comment = db.Column(db.Text, nullable=True)
     
+    # snapshots
+    customer_name_snapshot = db.Column(db.String(255), nullable=False)
+    phone_number = db.Column(db.String(255))
+    service_name_snapshot = db.Column(db.String(255), nullable=False)
+    price_snapshot = db.Column(db.Integer, nullable=False)
+    is_sale_snapshot = db.Column(db.Boolean, nullable=False, default=False)
+    service_name_snapshot = db.Column(db.String(255), nullable=False)
+    category_snapshot = db.Column(db.String(255), nullable=False)
+    discount_type_snapshot = db.Column(discount_type_enum, nullable=True)
+    discount_snapshot = db.Column(Float, nullable=True)
+    discounted_price_snapshot = db.Column(Float, nullable=False)
+    aesthetician_name_snapshot = db.Column(db.String(255), nullable=False)
+    is_pro_snapshot = db.Column(db.Boolean, nullable=False, default=False)
+    branch_name_snapshot = db.Column(db.String(255), nullable=False)
+    voucher_code_snapshot = db.Column(db.String(255), nullable=True)
+    voucher_discount_type = db.Column(discount_type_enum, nullable=True)
+    voucher_discount_amount = db.Column(db.Float, nullable=True, default=0.0)
+    
     # voucher
     voucher_code = db.Column(db.String(255), db.ForeignKey("voucher.voucher_code"), nullable=True)
     
-    # payment
+    # transaction
     down_payment_method = db.Column(payment_method_enum, nullable=True)
     down_payment = db.Column(db.Float, nullable=False, default=0.0)
     final_payment_method = db.Column(payment_method_enum, nullable=False)
-    original_amount = db.Column(db.Float, nullable=False, default=0.0) # the original price. pro aesthetician and voucher not included
     to_pay = db.Column(db.Float, nullable=False, default=0.0) # the price you're going to pay. the pro aesthetician, voucher and down payment if applicable is already deducted  
     payment_status = db.Column(payment_status_enum, nullable=False) # partial for dp and completed for complete payment
 
@@ -56,41 +75,16 @@ class Appointment(db.Model):
     def to_dict(self):
         return {
             "appointment_id": self.appointment_id,
-            "user": {
-                "user_id": self.user.user_id,
-                "first_name": self.user.first_name,
-                "last_name": self.user.last_name,
-                "middle_initial": self.user.middle_initial,
-                "phone_number": self.user.phone_number,
-                "sex": self.user.sex,
-            } if self.user else None,
-            "walk_in": {
-                "walk_in_id": self.walk_in.walk_in_id,
-                "first_name": self.walk_in.first_name,
-                "last_name": self.walk_in.last_name,
-                "middle_initial": self.walk_in.middle_initial,
-                "phone_number": self.walk_in.phone_number,
-                "sex": self.walk_in.sex,
-            } if self.walk_in else None,
-            "branch": {
-                "branch_id": self.branch_id,
-                "branch_name": self.branch.branch_name if self.branch.branch_id else None
-            },
-            "aesthetician": {
-                "aesthetician_id": self.aesthetician.aesthetician_id,
-                "first_name": self.aesthetician.first_name,
-                "last_name": self.aesthetician.last_name,
-                "middle_initial": self.aesthetician.middle_initial,
-                "experience": self.aesthetician.experience,
-            },
-            "service": {
-                "service_id": self.service.service_id,
-                "service_name": self.service.service_name,
-                "final_price": self.service.price,
-                "discounted_price":self.service.discounted_price,
-                "discount":self.service.discount,
-                "category": self.service.category,
-            },
+            "customer_name_snapshot": self.customer_name_snapshot,
+            "phone_number": self.phone_number,
+            "service_name_snapshot": self.service_name_snapshot,
+            "price_snapshot": self.price_snapshot,
+            "is_sale_snapshot": self.is_sale_snapshot,
+            "discount_type_snapshot": self.discount_type_snapshot,
+            "discount_snapshot": self.discount_snapshot,
+            "discounted_price_snapshot": self.discounted_price_snapshot,
+            "branch_name_snapshot": self.branch_name_snapshot,
+            "voucher_code_snapshot": self.voucher_code_snapshot,
             "status": self.status,
             "slot_number": self.slot_number,
             "branch_rating": self.branch_rating,
@@ -104,9 +98,6 @@ class Appointment(db.Model):
             "final_payment_method": self.final_payment_method,
             "to_pay": self.to_pay,
             "payment_status": self.payment_status,
-            "voucher_code": self.voucher_code,
-            "discount_amount": self.voucher.discount_amount if self.voucher else 0.0,
-            "original_amount": self.original_amount,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat()
         }

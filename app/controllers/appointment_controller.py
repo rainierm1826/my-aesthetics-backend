@@ -77,6 +77,10 @@ class AppointmentController(BaseCRUDController):
         if data["is_walk_in"] == True:
             # create walk-in
             new_walk_in = self._create_walk_in(data)
+            
+            if isinstance(new_walk_in, tuple):
+                return new_walk_in  
+            
             # create appointment
             new_appointment = self._create_appointment(data, walk_in_id=new_walk_in.walk_in_id)
             return new_appointment
@@ -101,12 +105,12 @@ class AppointmentController(BaseCRUDController):
             return new_appointment
     
     def _create_walk_in(self, data):
-        required_fields = ["first_name", "last_name", "middle_initial", "sex", "final_payment_method"]
+        required_fields = ["first_name", "last_name", "middle_initial"]
         if not validate_required_fields(data, required_fields):
             return jsonify({"status": False, "message": "missing required fields"}), 400
         
         # Filter data to only include WalkIn model fields
-        walk_in_fields = ["first_name", "last_name", "middle_initial", "phone_number", "sex"]
+        walk_in_fields = ["first_name", "last_name", "middle_initial", "phone_number"]
         walk_in_data = {key: data[key] for key in walk_in_fields if key in data}
         
         new_walk_in = WalkIn(**walk_in_data)
@@ -115,18 +119,20 @@ class AppointmentController(BaseCRUDController):
         return new_walk_in
 
     def _create_appointment(self, data, walk_in_id=None, user_id=None):
+        print(data)
         is_walk_in = data.pop("is_walk_in")
         data["walk_in_id"] = walk_in_id
         data["user_id"] = user_id
         data['status'] = "waiting"
 
-        print(data)
-        # Remove WalkIn-specific fields from data before creating appointment
-        walk_in_fields = ["first_name", "last_name", "middle_initial", "phone_number", "sex"]
+        # Remove WalkIn-specific fields
+        walk_in_fields = ["first_name", "last_name", "middle_initial", "phone_number"]
         appointment_data = {key: value for key, value in data.items() if key not in walk_in_fields}
         
         service = Service.query.get(appointment_data["service_id"])
         aesthetician = Aesthetician.query.get(appointment_data["aesthetician_id"])
+        
+
         
         if not service or not aesthetician:
             return jsonify({"status": False, "message": "service or aesthetician not found"}), 404
@@ -134,87 +140,108 @@ class AppointmentController(BaseCRUDController):
         if aesthetician.availability != "available":
             return jsonify({"status": False, "message": "aesthetician is not available"}), 503
         
-        if aesthetician.branch_id != appointment_data['branch_id']:
+        if aesthetician.branch.branch_id != appointment_data['branch_id']:
             return jsonify({"status": False, "message": "aesthetician is not available in this branch"}), 503
         
-        if service.branch_id is not None and service.branch_id != appointment_data['branch_id']:
+        if service.branch and service.branch.branch_id is not None and service.branch.branch_id != appointment_data['branch_id']:
             return jsonify({"status": False, "message": "service is not available in this branch"}), 503
         
-        # Calculate original amount (base service price)
-        original_amount = service.price
-        
-        # Calculate final amount with all discounts
-        final_amount = service.price
+        to_pay = service.discounted_price or service.price
         
         # Add pro experience fee
         if aesthetician.experience == "pro":
-            final_amount += 1500
+            to_pay += 1500
         
-        # Apply voucher discount if voucher exists
+        # Apply voucher discount
+        voucher = None
         if "voucher_code" in appointment_data and appointment_data["voucher_code"]:
             voucher = Voucher.query.filter_by(voucher_code=appointment_data["voucher_code"]).first()
             if not voucher:
                 return jsonify({"status": False, "message": "voucher does not exist"}), 404
             
-            
-            discount_type = voucher.discount_type
-            discount_amount = voucher.discount_amount
-            if discount_type == "fixed":
-                final_amount -= discount_amount
+            if voucher.discount_type == "fixed":
+                to_pay -= voucher.discount_amount
             else:
-                final_amount -= (final_amount * (discount_amount/100))
+                to_pay -= (to_pay * (voucher.discount_amount / 100))
+            
             voucher.quantity -= 1
-
+            db.session.add(voucher)  # ensure change is tracked
         
-        # max final amount is 0. cant be negative
-        final_amount = max(0, final_amount)
+        # Final amount can't go below zero
+        to_pay = max(0, to_pay)
         
-    
         if is_walk_in:
-            final_amount=appointment_data.get("to_pay", final_amount)
+            to_pay = appointment_data.get("to_pay", to_pay)
             down_payment_method = None
-            down_payment = 0 
-            to_pay = final_amount
+            down_payment = 0
+            to_pay = to_pay
             payment_status = "pending"
         else:
             down_payment_method = "xendit"
-            down_payment = final_amount * 0.2
-            to_pay = final_amount - down_payment
+            down_payment = to_pay * 0.2
+            to_pay = to_pay - down_payment
             payment_status = "pending"
-            
-        # Set down payment method 
-        appointment_data["down_payment_method"] = down_payment_method
         
-        # Set appointment status
-        appointment_data["status"] = "waiting"
-        appointment_data["payment_status"] = payment_status
+        # Set appointment payments/status
+        appointment_data.update({
+            "down_payment_method": down_payment_method,
+            "status": "waiting",
+            "payment_status": payment_status,
+            "to_pay": to_pay,
+            "down_payment": down_payment
+        })
         
-        
-        # Set the status of aesthetician
+        # Update aesthetician availability
         aesthetician.availability = "working"
         
-        # Set the slot number. This resets after a day
+        # Slot number (reset daily)
         max_slot = db.session.query(func.max(Appointment.slot_number)) \
             .filter(
                 Appointment.branch_id == appointment_data['branch_id'],
                 func.date(Appointment.created_at) == date.today()
             ).scalar()
-
-        # Assign next slot number
         appointment_data['slot_number'] = (max_slot or 0) + 1
+        
+        # Snapshots
+        if is_walk_in:
+            customer_name = f"{data.get('first_name', '')} {data.get('middle_initial', '')} {data.get('last_name', '')}".strip()
+            appointment_data["customer_name_snapshot"] = customer_name
+            appointment_data["phone_number"] = data.get("phone_number")
+        elif user_id:
+            user = User.query.get(user_id)
+            if user:
+                customer_name = f"{user.first_name} {user.middle_initial or ''} {user.last_name}".strip()
+                appointment_data["customer_name_snapshot"] = customer_name
+                appointment_data["phone_number"] = user.phone_number
 
+        if getattr(aesthetician, "experience") == "pro":
+            isPro=True
+        else:
+            isPro=False
         
-        # Set the calculated amounts
-        appointment_data["original_amount"] = original_amount
-        appointment_data["to_pay"] = to_pay
-        appointment_data["down_payment"] = down_payment
+        aesthetician_name = f"{aesthetician.first_name or ''} {aesthetician.middle_initial or ''} {aesthetician.last_name or ''}".strip()
         
+        appointment_data.update({
+            "aesthetician_name_snapshot":aesthetician_name,
+            "service_name_snapshot": service.service_name,
+            "category_snapshot": service.category,
+            "price_snapshot": service.price,
+            "is_sale_snapshot": getattr(service, "is_sale", False),
+            "is_pro_snapshot": isPro,
+            "discount_type_snapshot": getattr(service, "discount_type", None),
+            "discount_snapshot": getattr(service, "discount", None),
+            "discounted_price_snapshot": getattr(service, "discounted_price", service.price),
+            "branch_name_snapshot": getattr(service.branch, "branch_name", "") if service.branch else "",
+            "voucher_code_snapshot": appointment_data.get("voucher_code", None),
+            "voucher_discount_type": voucher.discount_type if voucher else None,
+            "voucher_discount_amount": voucher.discount_amount if voucher else 0.0
+        })
+
         
         new_appointment = Appointment(**appointment_data)
         db.session.add(new_appointment)
         return new_appointment
-      
-    
+
     def _update_average_rating(self, model, model_id_field, appointment_fk_field, rating_field):
         ids = db.session.query(model_id_field).distinct().all()
         
@@ -229,12 +256,3 @@ class AppointmentController(BaseCRUDController):
             )
 
         db.session.commit()
-
-
-                
-
-    
-    
-    
-    
-        
