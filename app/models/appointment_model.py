@@ -42,8 +42,8 @@ class Appointment(db.Model):
     is_pro_snapshot = db.Column(db.Boolean, nullable=False, default=False)
     branch_name_snapshot = db.Column(db.String(255), nullable=False)
     voucher_code_snapshot = db.Column(db.String(255), nullable=True)
-    voucher_discount_type = db.Column(discount_type_enum, nullable=True)
-    voucher_discount_amount = db.Column(db.Float, nullable=True, default=0.0)
+    voucher_discount_type_snapshot = db.Column(discount_type_enum, nullable=True)
+    voucher_discount_amount_snapshot = db.Column(db.Float, nullable=True, default=0.0)
     
     # voucher
     voucher_code = db.Column(db.String(255), db.ForeignKey("voucher.voucher_code"), nullable=True)
@@ -76,8 +76,11 @@ class Appointment(db.Model):
         return {
             "appointment_id": self.appointment_id,
             "customer_name_snapshot": self.customer_name_snapshot,
+            "aesthetician_name_snapshot": self.aesthetician_name_snapshot,
+            "is_pro_snapshot": self.is_pro_snapshot,
             "phone_number": self.phone_number,
             "service_name_snapshot": self.service_name_snapshot,
+            "category_snapshot": self.category_snapshot,
             "price_snapshot": self.price_snapshot,
             "is_sale_snapshot": self.is_sale_snapshot,
             "discount_type_snapshot": self.discount_type_snapshot,
@@ -85,6 +88,8 @@ class Appointment(db.Model):
             "discounted_price_snapshot": self.discounted_price_snapshot,
             "branch_name_snapshot": self.branch_name_snapshot,
             "voucher_code_snapshot": self.voucher_code_snapshot,
+            "voucher_discount_type_snapshot": self.voucher_discount_type_snapshot,
+            "voucher_discount_amount_snapshot": self.voucher_discount_amount_snapshot,
             "status": self.status,
             "slot_number": self.slot_number,
             "branch_rating": self.branch_rating,

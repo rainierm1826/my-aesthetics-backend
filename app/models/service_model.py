@@ -29,7 +29,7 @@ class Service(db.Model):
         return {
             "service_id": self.service_id,
             "branch":{
-              "branch_id": self.branch.branch_id,
+              "branch_id": self.branch.branch_id if self.branch_id else None,
               "branch_name": self.branch.branch_name if self.branch_id else None
             },
             "service_name": self.service_name,
