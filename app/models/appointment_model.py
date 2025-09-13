@@ -42,7 +42,7 @@ class Appointment(db.Model):
     is_pro_snapshot = db.Column(db.Boolean, nullable=False, default=False)
     branch_name_snapshot = db.Column(db.String(255), nullable=False)
     voucher_code_snapshot = db.Column(db.String(255), nullable=True)
-    voucher_discount_type_snapshot = db.Column(discount_type_enum, nullable=True)
+    voucher_discount_type_snapshot = db.Column(discount_type_enum, nullable=True, )
     voucher_discount_amount_snapshot = db.Column(db.Float, nullable=True, default=0.0)
     
     # voucher

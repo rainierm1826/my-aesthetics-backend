@@ -5,7 +5,7 @@ from sqlalchemy import Enum
 payment_method_enum = Enum("cash", "e-wallet", "bank-transfer", "credit-card", "debit-card", name="payment_method_enum")
 payment_status_enum = Enum("completed", "partial", "pending", name="payment_status_enum")
 branch_status_enum = Enum("active", "closed", name="branch_status_enum")
-appointment_status_enum = Enum("cancelled", "completed", "pending", "waiting", name="appointment_status_enum")
+appointment_status_enum = Enum("cancelled", "completed", "on-process", "waiting", name="appointment_status_enum")
 sex_enum = Enum("male", "female", "others", name="sex_enum")
 experience_enum = Enum("pro", "regular", name="experience_enum")
 availability_enum = Enum("available", "working", "off-duty", "break", name="availability_enum")

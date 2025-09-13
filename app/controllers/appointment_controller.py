@@ -38,7 +38,7 @@ class AppointmentController(BaseCRUDController):
     def _apply_sorting(self, query):
         status_order = case(
             (Appointment.status == "waiting", 1),
-            (Appointment.status == "pending", 2),
+            (Appointment.status == "on-process", 2),
             (Appointment.status == "completed", 3),
             (Appointment.status == "cancelled", 4),
             else_=5,
@@ -195,13 +195,20 @@ class AppointmentController(BaseCRUDController):
         aesthetician.availability = "working"
         
         # Slot number (reset daily)
+        from sqlalchemy import or_
+
+# Get the current max slot for today ignoring cancelled appointments
         max_slot = db.session.query(func.max(Appointment.slot_number)) \
             .filter(
                 Appointment.branch_id == appointment_data['branch_id'],
                 func.date(Appointment.created_at) == date.today(),
-                Appointment.isDeleted==False
+                Appointment.status.in_(["waiting", "on-process"]),  # only these count
+                Appointment.isDeleted == False
             ).scalar()
+
+        # Assign next slot
         appointment_data['slot_number'] = (max_slot or 0) + 1
+
         
         # Snapshots
         if is_walk_in:
@@ -230,7 +237,7 @@ class AppointmentController(BaseCRUDController):
             "is_sale_snapshot": getattr(service, "is_sale", False),
             "is_pro_snapshot": isPro,
             "discount_type_snapshot": getattr(service, "discount_type", None),
-            "discount_snapshot": getattr(service, "discount", None),
+            "discount_snapshot": getattr(voucher, "discount_amount", None),
             "discounted_price_snapshot": getattr(service, "discounted_price", service.price),
             "branch_name_snapshot": branch.branch_name,
             "voucher_code_snapshot": appointment_data.get("voucher_code", None),
