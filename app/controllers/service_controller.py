@@ -15,7 +15,8 @@ class ServiceController(BaseCRUDController):
             filterable_fields={"category": "category", "branch": (Branch, "branch_id")},
             updatable_fields=["service_name", "branch_id", "discount", "is_sale", "discount_type", "category", "image", "description", "price"],
             sortable_fields={"price": Service.price, "service": Service.service_name, "rate": Service.average_rate},
-            joins=[(Branch, Service.branch_id == Branch.branch_id, "left")]
+            joins=[(Branch, Service.branch_id == Branch.branch_id, "left")],
+    
         )
     
     def get_service_name(self):
