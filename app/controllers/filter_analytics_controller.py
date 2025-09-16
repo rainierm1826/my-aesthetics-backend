@@ -11,6 +11,10 @@ class FilterAnalyticsController:
             'year': request.args.get("year", type=int),
             'branch_id': request.args.get("branch", type=str)
         }
+        
+    @staticmethod
+    def apply_is_completed(query):
+        return query.filter(Appointment.status == "completed")
     
     @staticmethod
     def apply_filter_date(query, month=None, year=None):
@@ -28,9 +32,12 @@ class FilterAnalyticsController:
     
     @staticmethod
     def apply_all_filters(query, month=None, year=None, branch_id=None):
+        query = FilterAnalyticsController.apply_is_completed(query)
         query = FilterAnalyticsController.apply_filter_branch(query, branch_id)
         query = FilterAnalyticsController.apply_filter_date(query, month, year)
         return query
+    
+    
     
     @staticmethod
     def apply_filters_from_request(query):

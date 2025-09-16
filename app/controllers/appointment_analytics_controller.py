@@ -1,20 +1,74 @@
 from ..controllers.filter_analytics_controller import FilterAnalyticsController
 from ..extension import db
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, extract, case
 from ..models.appointment_model import Appointment
 from ..models.service_model import Service
 from ..models.aesthetician_model import Aesthetician
 from ..models.branch_model import Branch
-from ..models.voucher_model import Voucher
-from datetime import date
+from flask import request
+
 
 class AppointmentAnalyticsController:
     def __init__(self):
         pass
     
     
-    def appointments_overtime(self):
-        pass
+    def appointment_overtime(self):
+        group_by = request.args.get("group-by", default="year")
+        if group_by == "year":
+            query = db.session.query(
+                extract("year", Appointment.created_at).label("year"),
+                func.count(Appointment.appointment_id).label("count")
+            ).group_by("year").order_by("year")
+
+
+        elif group_by == "month":
+            month_num = extract("month", Appointment.created_at)
+
+            query = db.session.query(
+                extract("year", Appointment.created_at).label("year"),
+                case(
+                    (month_num == 1, "January"),
+                    (month_num == 2, "February"),
+                    (month_num == 3, "March"),
+                    (month_num == 4, "April"),
+                    (month_num == 5, "May"),
+                    (month_num == 6, "June"),
+                    (month_num == 7, "July"),
+                    (month_num == 8, "August"),
+                    (month_num == 9, "September"),
+                    (month_num == 10, "October"),
+                    (month_num == 11, "November"),
+                    (month_num == 12, "December"),
+                ).label("month"),
+                func.count(Appointment.appointment_id).label("count"),
+            ).group_by("year", "month", month_num).order_by("year", month_num)
+
+            
+        elif group_by == "weekday":
+            dow = extract("dow", Appointment.created_at)
+            query = db.session.query(
+                case(
+                    (dow == 0, "Sunday"),
+                    (dow == 1, "Monday"),
+                    (dow == 2, "Tuesday"),
+                    (dow == 3, "Wednesday"),
+                    (dow == 4, "Thursday"),
+                    (dow == 5, "Friday"),
+                    (dow == 6, "Saturday"),
+                ).label("weekday"),
+                func.count(Appointment.appointment_id).label("count")
+            ).group_by("weekday").order_by("weekday")
+
+        else:
+            query = db.session.query(
+                Appointment.created_at.label("date"),
+                func.count(Appointment.appointment_id).label("count")
+            ).group_by("date").order_by("date")
+
+        query = FilterAnalyticsController.apply_filters_from_request(query)
+        return [dict(row._mapping) for row in query.all()]
+
     
     
     def appointments_by_service_category(self):
@@ -55,9 +109,6 @@ class AppointmentAnalyticsController:
         query = FilterAnalyticsController.apply_filters_from_request(query)
         return [dict(row._mapping) for row in query.all()]
     
-    def revenue_by_aesthetician(self):
-        query = db.session.query(Appointment.aesthetician_name_snapshot.label("aesthetician"), func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.aesthetician_id, Appointment.aesthetician_name_snapshot)
-        query = FilterAnalyticsController.apply_filters_from_request(query)
-        return [dict(row._mapping) for row in query.all()]
+
         
         
