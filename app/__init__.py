@@ -47,7 +47,7 @@ def create_app():
     from .routes.appointment_routes import appointment_bp
     from .routes.aesthetician_routes import aesthetician_bp
     from .routes.voucher_routes import voucher_bp
-    from .routes.analytic_routes import analytics_bp
+    from .routes.analytics_routes import analytics_bp
     from .routes.admin_routes import admin_bp
     
     
