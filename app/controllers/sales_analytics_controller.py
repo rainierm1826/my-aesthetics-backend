@@ -10,7 +10,7 @@ class SalesAnalyticsController:
         pass
     
     def revenue_overtime(self):
-        group_by = request.args.get("group-by", default="year")
+        group_by = request.args.get("group-by", default="weekday")
         if group_by == "year":
             query = db.session.query(
                 extract("year", Appointment.created_at).label("year"),
@@ -77,6 +77,12 @@ class SalesAnalyticsController:
     
     def revenue_by_service(self):
         query = db.session.query(Appointment.service_name_snapshot.label("service"), func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.service_id, Appointment.service_name_snapshot)
+        query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = query.limit(10)
+        return [dict(row._mapping) for row in query.all()]
+    
+    def revenue_by_branch(self):
+        query = db.session.query(Appointment.branch_name_snapshot.label("branch"), func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.branch_id, Appointment.branch_name_snapshot)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.limit(10)
         return [dict(row._mapping) for row in query.all()]

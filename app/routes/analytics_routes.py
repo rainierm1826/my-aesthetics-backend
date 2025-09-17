@@ -56,5 +56,6 @@ def get_revenue_summary():
         "revenue_by_aesthetician": sales_analytics_controller.revenue_by_aesthetician(),
         "revenue_by_service": sales_analytics_controller.revenue_by_service(),
         "revenue_by_category": sales_analytics_controller.revenue_by_category(),
-        "payment_popularity": sales_analytics_controller.payment_popularity()
+        "payment_popularity": sales_analytics_controller.payment_popularity(),
+        "revenue_by_branch": sales_analytics_controller.revenue_by_branch()
     })
