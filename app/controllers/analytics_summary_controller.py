@@ -61,5 +61,11 @@ class AnalyticsSummaryController:
         return query.scalar() or 0
     
     
+    def sex_count_by_aesthetician(self):
+        query = db.session.query(func.count(Aesthetician.sex).label("count"), Aesthetician.sex).group_by(Aesthetician.sex)
+        query = FilterAnalyticsController.apply_filters_from_request(query)
+        return [dict(row._mapping) for row in query.all()]
+    
+    
     
     

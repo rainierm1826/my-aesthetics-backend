@@ -70,43 +70,45 @@ class AppointmentAnalyticsController:
         return [dict(row._mapping) for row in query.all()]
 
     
-    
     def appointments_by_service_category(self):
         query = db.session.query(Appointment.category_snapshot.label("category"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.category_snapshot)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         return [dict(row._mapping) for row in query.all()]
     
     def appointments_by_service(self):
-        query = db.session.query(Appointment.category_snapshot.label("service"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.service_name_snapshot)
+        query = db.session.query(Appointment.service_name_snapshot.label("service"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.service_name_snapshot)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         return [dict(row._mapping) for row in query.all()]
     
     def appointments_by_aesthetician(self):
-        query = db.session.query(Appointment.category_snapshot.label("aesthetician"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.service_name_snapshot)
+        query = db.session.query(Appointment.aesthetician_name_snapshot.label("aesthetician"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.aesthetician_name_snapshot)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         return [dict(row._mapping) for row in query.all()]
     
     
     def appointments_status(self):
-        query = db.session.query(Appointment.status.label("status"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.status)
+        query = db.session.query(Appointment.status, func.count(Appointment.appointment_id).label("count")).group_by(Appointment.status)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         return [dict(row._mapping) for row in query.all()]
     
     
     def top_rated_aesthetician(self):
-        query = db.session.query(func.concat(Aesthetician.first_name, " ",func.coalesce(Aesthetician.middle_initial, "")," ", Aesthetician.last_name).label("aesthetician"), Aesthetician.average_rate).order_by(desc(Aesthetician.average_rate)).limit(10)
+        query = db.session.query(func.concat(Aesthetician.first_name, " ",func.coalesce(Aesthetician.middle_initial, "")," ", Aesthetician.last_name).label("aesthetician"), Aesthetician.average_rate)
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = query.order_by(desc(Aesthetician.average_rate)).limit(10)
         return [dict(row._mapping) for row in query.all()]
     
     def top_rated_service(self):
-        query = db.session.query(Service.service_name, Service.average_rate).order_by(desc(Service.average_rate)).limit(10)
+        query = db.session.query(Service.service_name, Service.average_rate)
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = query.order_by(desc(Service.average_rate)).limit(10)
         return [dict(row._mapping) for row in query.all()]
 
 
     def top_rated_branch(self):
-        query = db.session.query(Branch.branch_name, Branch.average_rate).order_by(desc(Branch.average_rate)).limit(10)
+        query = db.session.query(Branch.branch_name, Branch.average_rate)
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = query.order_by(desc(Branch.average_rate)).limit(10)
         return [dict(row._mapping) for row in query.all()]
     
 
