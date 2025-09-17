@@ -39,7 +39,6 @@ class AnalyticsSummaryController:
         query = FilterAnalyticsController.apply_filters_from_request(query)
         return query.scalar() or 0
     
-    import statistics
 
     def avarage_overall_rating(self):
         branch = self.avarage_branch_rating()

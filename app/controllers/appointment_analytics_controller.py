@@ -87,8 +87,12 @@ class AppointmentAnalyticsController:
     
     
     def appointments_status(self):
+        params = FilterAnalyticsController.get_filter_params()
+
+        
         query = db.session.query(Appointment.status, func.count(Appointment.appointment_id).label("count")).group_by(Appointment.status)
-        query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
+        query = FilterAnalyticsController.apply_filter_date(query, params["year"], params["month"])
         return [dict(row._mapping) for row in query.all()]
     
     
