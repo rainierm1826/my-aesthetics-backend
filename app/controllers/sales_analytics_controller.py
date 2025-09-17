@@ -70,18 +70,21 @@ class SalesAnalyticsController:
 
     
     def revenue_by_aesthetician(self):
-        query = db.session.query(Appointment.aesthetician_name_snapshot.label("aesthetician"), func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.aesthetician_id, Appointment.aesthetician_name_snapshot).limit(10)
+        query = db.session.query(Appointment.aesthetician_name_snapshot.label("aesthetician"), func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.aesthetician_id, Appointment.aesthetician_name_snapshot)
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = query.limit(10)
         return [dict(row._mapping) for row in query.all()]
     
     def revenue_by_service(self):
-        query = db.session.query(Appointment.service_name_snapshot.label("service"), func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.service_id, Appointment.service_name_snapshot).limit(10)
+        query = db.session.query(Appointment.service_name_snapshot.label("service"), func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.service_id, Appointment.service_name_snapshot)
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = query.limit(10)
         return [dict(row._mapping) for row in query.all()]
     
     def revenue_by_category(self):
-        query = db.session.query(Appointment.category_snapshot, func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.category_snapshot).limit(10)
+        query = db.session.query(Appointment.category_snapshot, func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.category_snapshot)
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = query.limit(10)
         return [dict(row._mapping) for row in query.all()]
     
     

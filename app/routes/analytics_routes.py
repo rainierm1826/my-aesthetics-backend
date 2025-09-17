@@ -28,7 +28,7 @@ def get_summary():
 
 
 # appointments
-@analytics_bp.route(rule="/get-appointment-analytics", methods=["GET"])
+@analytics_bp.route(rule="/appointments", methods=["GET"])
 def get_appointment_analytics():
     return jsonify({
         "appointments_overtime": appointment_analytics_controller.appointment_overtime(),
@@ -40,29 +40,18 @@ def get_appointment_analytics():
         "top_rated_service": appointment_analytics_controller.top_rated_service(),
         "top_rated_branch": appointment_analytics_controller.top_rated_branch()
     })
+    
+    
 
 
 
 # sales
-@analytics_bp.route(rule="/revenue-overtime", methods=["GET"])
-def get_revenue_overtime():
-    return jsonify(sales_analytics_controller.revenue_overtime())
-
-
-@analytics_bp.route(rule="/revenue-by-aesthetician", methods=["GET"])
-def get_revenue_by_aesthetician():
-    return jsonify(sales_analytics_controller.revenue_by_aesthetician())
-
-
-@analytics_bp.route(rule="/revenue-by-service", methods=["GET"])
-def get_revenue_by_service():
-    return jsonify(sales_analytics_controller.revenue_by_service())
-
-
-@analytics_bp.route(rule="/revenue-by-category", methods=["GET"])
-def get_revenue_by_category():
-    return jsonify(sales_analytics_controller.revenue_by_category())
-
-@analytics_bp.route(rule="/get-payment-popularity", methods=["GET"])
-def get_payment_popularity():
-    return jsonify(sales_analytics_controller.payment_popularity())
+@analytics_bp.route(rule="/sales", methods=["GET"])
+def get_revenue_summary():
+    return jsonify({
+        "revenue_overtime": sales_analytics_controller.revenue_overtime(),
+        "revenue_by_aesthetician": sales_analytics_controller.revenue_by_aesthetician(),
+        "revenue_by_service": sales_analytics_controller.revenue_by_service(),
+        "revenue_by_category": sales_analytics_controller.revenue_by_category(),
+        "payment_popularity": sales_analytics_controller.payment_popularity()
+    })
