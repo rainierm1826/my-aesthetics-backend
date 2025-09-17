@@ -17,11 +17,14 @@ def get_summary():
         "average_service_rating": summary_controller.avarage_service_rating(),
         "average_aesthetician_rating": summary_controller.avarage_aesthetician_rating(),
         "average_branch_rating": summary_controller.avarage_branch_rating(),
+        "avarage_overall_rating": summary_controller.avarage_overall_rating(),
         "total_service": summary_controller.total_services(),
         "total_branches": summary_controller.total_branches(),
         "total_aestheticians": summary_controller.total_aestheticians(),
         "total_active_vouchers": summary_controller.total_active_vouchers(),
         "sex-count-by-aesthetician": summary_controller.sex_count_by_aesthetician(),
+        "completion_rate":summary_controller.completion_rate(),
+        "cancellation_rate":summary_controller.cancellation_rate()
     })
 
 
