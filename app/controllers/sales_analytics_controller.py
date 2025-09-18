@@ -10,7 +10,7 @@ class SalesAnalyticsController:
         pass
     
     def revenue_overtime(self):
-        group_by = request.args.get("group-by", default="weekday")
+        group_by = request.args.get("group-by", default="year")
         if group_by == "year":
             query = db.session.query(
                 extract("year", Appointment.created_at).label("year"),

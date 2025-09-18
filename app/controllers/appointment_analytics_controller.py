@@ -14,7 +14,7 @@ class AppointmentAnalyticsController:
     
     
     def appointment_overtime(self):
-        group_by = request.args.get("group-by", default="weekday")
+        group_by = request.args.get("group-by", default="year")
         if group_by == "year":
             query = db.session.query(
                 extract("year", Appointment.created_at).label("year"),
@@ -78,16 +78,19 @@ class AppointmentAnalyticsController:
     def appointments_by_service(self):
         query = db.session.query(Appointment.service_name_snapshot.label("service"), func.count(Appointment.appointment_id).label("count")).group_by( Appointment.service_name_snapshot)
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = query.limit(10)
         return [dict(row._mapping) for row in query.all()]
     
     def appointments_by_branch(self):
         query = db.session.query(Appointment.branch_name_snapshot.label("branch"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.branch_name_snapshot)
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = query.limit(10)
         return [dict(row._mapping) for row in query.all()]
     
     def appointments_by_aesthetician(self):
         query = db.session.query(Appointment.aesthetician_name_snapshot.label("aesthetician"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.aesthetician_name_snapshot)
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = query.limit(10)
         return [dict(row._mapping) for row in query.all()]
     
     

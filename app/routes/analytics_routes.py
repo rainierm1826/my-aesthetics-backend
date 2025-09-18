@@ -37,6 +37,7 @@ def get_appointment_analytics():
         "appointments_overtime": appointment_analytics_controller.appointment_overtime(),
         "appointments_by_service_category": appointment_analytics_controller.appointments_by_service_category(),
         "appointments_by_service": appointment_analytics_controller.appointments_by_service(),
+        "appointments_by_branch": appointment_analytics_controller.appointments_by_branch(),
         "appointments_by_aesthetician": appointment_analytics_controller.appointments_by_aesthetician(),
         "appointments_status": appointment_analytics_controller.appointments_status(),
         "top_rated_aesthetician": appointment_analytics_controller.top_rated_aesthetician(),
