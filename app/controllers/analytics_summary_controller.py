@@ -61,8 +61,9 @@ class AnalyticsSummaryController:
     
     
     def total_aestheticians(self):
+        params = FilterAnalyticsController.get_filter_params()
         query = db.session.query(func.count(Aesthetician.aesthetician_id))
-        query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
         return query.scalar() or 0
     
     def total_branches(self):
