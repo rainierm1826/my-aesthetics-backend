@@ -73,3 +73,12 @@ def get_branch_analytics():
         "average_branch_rating": summary_controller.avarage_branch_rating(),
     })
 
+
+
+@analytics_bp.route(rule="/aesthetician", methods=["GET"])
+def get_aesthetician_analytics():
+    return jsonify({
+        "aesthetician_experience": summary_controller.aesthetician_experience(),
+        "average_aesthetician_rating": summary_controller.avarage_aesthetician_rating(),
+        "total_aestheticians": summary_controller.total_aestheticians(),
+    })

@@ -26,18 +26,18 @@ class AnalyticsSummaryController:
     def avarage_service_rating(self):
         query = db.session.query(func.avg(Service.average_rate))
         query = FilterAnalyticsController.apply_filters_from_request(query)
-        return query.scalar() or 0
+        return round(query.scalar(), 2) or 0
     
     def avarage_branch_rating(self):
         query = db.session.query(func.avg(Branch.average_rate))
         query = FilterAnalyticsController.apply_filters_from_request(query)
-        return query.scalar() or 0
+        return round(query.scalar(), 2) or 0
     
     
     def avarage_aesthetician_rating(self):
         query = db.session.query(func.avg(Aesthetician.average_rate))
         query = FilterAnalyticsController.apply_filters_from_request(query)
-        return query.scalar() or 0
+        return round(query.scalar(), 2) or 0
     
 
     def avarage_overall_rating(self):
@@ -150,6 +150,23 @@ class AnalyticsSummaryController:
         )
 
         return {row.branch_name: float(round(row.completion_rate, 2)) for row in result}
+
+    def appointments_by_aesthetician(self):
+        query = db.session.query(Appointment.aesthetician_name_snapshot.label("aesthetician"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.aesthetician_name_snapshot)
+        query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = query.limit(10)
+        return [dict(row._mapping) for row in query.all()]
+
+    def aesthetician_experience(self):
+        query = (
+            db.session.query(
+                Aesthetician.experience,
+                func.count(func.distinct(Aesthetician.aesthetician_id)).label("count")
+            )
+            .group_by(Aesthetician.experience)
+        )
+
+        return [dict(row._mapping) for row in query.all()]
 
     
     
