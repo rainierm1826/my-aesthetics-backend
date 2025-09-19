@@ -8,23 +8,30 @@ summary_controller = AnalyticsSummaryController()
 appointment_analytics_controller = AppointmentAnalyticsController()
 sales_analytics_controller = SalesAnalyticsController()
 
+
 # summary
-@analytics_bp.route(rule="/summary", methods=["GET"])
-def get_summary():
+@analytics_bp.route(rule="/appointment/summary", methods=["GET"])
+def get_appointment_summary():
     return jsonify({
         "total_appointments": summary_controller.total_appointments(),
-        "total_revenue": summary_controller.total_revenue(),
-        "average_service_rating": summary_controller.avarage_service_rating(),
-        "average_aesthetician_rating": summary_controller.avarage_aesthetician_rating(),
-        "average_branch_rating": summary_controller.avarage_branch_rating(),
         "avarage_overall_rating": summary_controller.avarage_overall_rating(),
-        "total_service": summary_controller.total_services(),
-        "total_branches": summary_controller.total_branches(),
-        "total_aestheticians": summary_controller.total_aestheticians(),
-        "total_active_vouchers": summary_controller.total_active_vouchers(),
-        "sex-count-by-aesthetician": summary_controller.sex_count_by_aesthetician(),
         "completion_rate":summary_controller.completion_rate(),
         "cancellation_rate":summary_controller.cancellation_rate()
+    })
+    
+# "average_service_rating": summary_controller.avarage_service_rating(),
+# "average_aesthetician_rating": summary_controller.avarage_aesthetician_rating(),
+# "total_service": summary_controller.total_services(),
+# "total_branches": summary_controller.total_branches(),
+# "total_aestheticians": summary_controller.total_aestheticians(),
+# "total_active_vouchers": summary_controller.total_active_vouchers(),
+# "sex-count-by-aesthetician": summary_controller.sex_count_by_aesthetician(),
+
+
+@analytics_bp.route(rule="/sales/summary", methods=["GET"])
+def get_sales_summary():
+    return jsonify({
+        "total_revenue": summary_controller.total_revenue(),
     })
 
 
@@ -44,8 +51,6 @@ def get_appointment_analytics():
         "top_rated_service": appointment_analytics_controller.top_rated_service(),
         "top_rated_branch": appointment_analytics_controller.top_rated_branch()
     })
-    
-    
 
 
 
@@ -60,3 +65,11 @@ def get_revenue_summary():
         "payment_popularity": sales_analytics_controller.payment_popularity(),
         "revenue_by_branch": sales_analytics_controller.revenue_by_branch()
     })
+    
+@analytics_bp.route(rule="/branch", methods=["GET"])
+def get_branch_analytics():
+    return jsonify({
+        "branch_completion_rate": summary_controller.branch_completion_rate(),
+        "average_branch_rating": summary_controller.avarage_branch_rating(),
+    })
+

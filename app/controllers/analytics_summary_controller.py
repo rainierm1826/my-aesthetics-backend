@@ -110,10 +110,48 @@ class AnalyticsSummaryController:
 
         total_appointments = base_query.count()
 
-        completed_query = base_query.filter(Appointment.status == "cancelled")
-        completed_appointments = completed_query.count()
+        cancelled_query = base_query.filter(Appointment.status == "cancelled")
+        cancelled_query = cancelled_query.count()
 
         if total_appointments == 0:
             return 0
 
-        return round((completed_appointments / total_appointments)*100, 2)
+        return round((cancelled_query / total_appointments)*100, 2)
+
+
+    def branch_completion_rate(self):
+        total_query = (
+            db.session.query(
+                Appointment.branch_id,
+                func.count(Appointment.appointment_id).label("total")
+            )
+            .group_by(Appointment.branch_id)
+            .subquery()
+        )
+
+        completed_query = (
+            db.session.query(
+                Appointment.branch_id,
+                func.count(Appointment.appointment_id).label("completed")
+            )
+            .filter(Appointment.status == "completed")
+            .group_by(Appointment.branch_id)
+            .subquery()
+        )
+
+        result = (
+            db.session.query(
+                Branch.branch_name.label("branch_name"),
+                (func.coalesce(completed_query.c.completed, 0) / total_query.c.total * 100).label("completion_rate")
+            )
+            .join(total_query, Branch.branch_id == total_query.c.branch_id)
+            .outerjoin(completed_query, completed_query.c.branch_id == total_query.c.branch_id)
+            .all()
+        )
+
+        return {row.branch_name: float(round(row.completion_rate, 2)) for row in result}
+
+    
+    
+
+            
