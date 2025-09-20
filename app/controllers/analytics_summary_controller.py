@@ -1,6 +1,6 @@
 from ..controllers.filter_analytics_controller import FilterAnalyticsController
 from ..extension import db
-from sqlalchemy import func
+from sqlalchemy import func, cast, Date
 from ..models.appointment_model import Appointment
 from ..models.service_model import Service
 from ..models.aesthetician_model import Aesthetician
@@ -8,6 +8,7 @@ from ..models.branch_model import Branch
 from ..models.voucher_model import Voucher
 from datetime import date
 import statistics
+
 
 class AnalyticsSummaryController:
     def __init__(self):
@@ -190,8 +191,32 @@ class AnalyticsSummaryController:
         query = FilterAnalyticsController.apply_not_deleted(query, Service)
         query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
         return [dict(row._mapping) for row in query.all()]
-
     
+    
+
+    def appointments_per_branch(self):
+        daily_counts = (
+            db.session.query(
+                Appointment.branch_name_snapshot.label("branch"),
+                cast(Appointment.created_at, Date).label("day"),
+                func.count(Appointment.appointment_id).label("daily_count")
+            )
+            .group_by(Appointment.branch_id, Appointment.branch_name_snapshot, cast(Appointment.created_at, Date))
+            .subquery()
+        )
+
+        query = (
+            db.session.query(
+                daily_counts.c.branch,
+                func.round(func.avg(daily_counts.c.daily_count)).label("daily_average")
+            )
+            .group_by(daily_counts.c.branch)
+        )
+
+        return [dict(row._mapping) for row in query.all()]
+
+
+        
     
 
             

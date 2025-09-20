@@ -39,7 +39,7 @@ def get_sales_summary():
 
 # appointments
 @analytics_bp.route(rule="/appointments", methods=["GET"])
-def get_appointment_analytics():
+def get_appointments_analytics():
     return jsonify({
         "appointments_overtime": appointment_analytics_controller.appointment_overtime(),
         "appointments_by_service_category": appointment_analytics_controller.appointments_by_service_category(),
@@ -89,5 +89,12 @@ def get_service_analytics():
         "average_service_rating":summary_controller.avarage_service_rating(),
         "sale_service": summary_controller.sale_service(),
         "total_services": summary_controller.total_services(),
+    })
+    
+
+@analytics_bp.route(rule="/appointment", methods=["GET"])
+def get_appointment_analytics():
+    return jsonify({
+        "average_service_rating":summary_controller.appointments_per_branch()
     })
 
