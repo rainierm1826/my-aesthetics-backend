@@ -3,9 +3,10 @@ from ..helper.functions import generate_id
 from datetime import date
 from ..helper.constant import payment_method_enum, payment_status_enum, appointment_status_enum, discount_type_enum
 from sqlalchemy import Float
+from .base_mixin import SoftDeleteMixin
 
 
-class Appointment(db.Model):
+class Appointment(db.Model, SoftDeleteMixin):
     appointment_id = db.Column(db.String(255), primary_key=True, default=lambda:generate_id("APPOINTMENT"))
         
     # foreign keys

@@ -2,8 +2,9 @@ from app import db
 from datetime import datetime, timezone
 from sqlalchemy import CHAR
 from uuid import uuid4
+from .base_mixin import SoftDeleteMixin
 
-class User(db.Model):
+class User(db.Model, SoftDeleteMixin):
     user_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
     account_id = db.Column(db.String(255), db.ForeignKey("auth.account_id"), nullable=False)
     first_name = db.Column(db.String(255))

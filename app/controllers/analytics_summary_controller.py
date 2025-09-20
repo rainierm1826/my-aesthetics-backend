@@ -55,8 +55,10 @@ class AnalyticsSummaryController:
 
     
     def total_services(self):
+        params = FilterAnalyticsController.get_filter_params()
         query = db.session.query(func.count(Service.service_id))
-        query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
+        query = FilterAnalyticsController.apply_filter_date(query, params["month"], params["year"])
         return query.scalar() or 0
     
     
@@ -64,11 +66,15 @@ class AnalyticsSummaryController:
         params = FilterAnalyticsController.get_filter_params()
         query = db.session.query(func.count(Aesthetician.aesthetician_id))
         query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
+        query = FilterAnalyticsController.apply_filter_date(query, params["month"], params["year"])
         return query.scalar() or 0
     
     def total_branches(self):
+        params = FilterAnalyticsController.get_filter_params()
         query = db.session.query(func.count(Branch.branch_id))
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
+        query = FilterAnalyticsController.apply_filter_date(query, params["month"], params["year"])
         return query.scalar() or 0
     
     
@@ -167,6 +173,22 @@ class AnalyticsSummaryController:
             .group_by(Aesthetician.experience)
         )
 
+        return [dict(row._mapping) for row in query.all()]
+    
+    def sale_service(self):
+        params = FilterAnalyticsController.get_filter_params()
+        query = db.session.query(func.count(Service.service_id).label("count"))
+        query = query.filter(Service.is_sale==True)
+        query = FilterAnalyticsController.apply_not_deleted(query, Service)
+        query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
+        query = FilterAnalyticsController.apply_filter_date(query, params["month"], params["year"])
+        return query.scalar() or 0
+    
+    def service_per_category(self):
+        params = FilterAnalyticsController.get_filter_params()
+        query = db.session.query(Service.category, func.count(Service.service_id).label("count")).group_by(Service.category)
+        query = FilterAnalyticsController.apply_not_deleted(query, Service)
+        query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
         return [dict(row._mapping) for row in query.all()]
 
     

@@ -3,8 +3,9 @@ from datetime import datetime, timezone
 from sqlalchemy import CHAR
 from ..helper.constant import sex_enum, experience_enum, availability_enum
 from uuid import uuid4
+from .base_mixin import SoftDeleteMixin
 
-class Aesthetician(db.Model):
+class Aesthetician(db.Model, SoftDeleteMixin):
     aesthetician_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=False)
     first_name = db.Column(db.String(255), nullable=False)

@@ -2,8 +2,9 @@ from app import db
 from datetime import datetime, timezone
 from ..helper.constant import branch_status_enum
 from uuid import uuid4
+from .base_mixin import SoftDeleteMixin
 
-class Branch(db.Model):
+class Branch(db.Model, SoftDeleteMixin):
     branch_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
     address_id = db.Column(db.String(255), db.ForeignKey("address.address_id"))
     branch_name = db.Column(db.String(255), nullable=False)

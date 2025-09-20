@@ -2,8 +2,9 @@ from app import db
 from datetime import datetime, timezone
 from ..helper.functions import generate_voucher_code
 from ..helper.constant import discount_type_enum
+from .base_mixin import SoftDeleteMixin
 
-class Voucher(db.Model):
+class Voucher(db.Model, SoftDeleteMixin):
     voucher_code = db.Column(db.String(255), primary_key=True, default=lambda:generate_voucher_code())
     discount_type = db.Column(discount_type_enum, nullable=False)
     discount_amount = db.Column(db.Float, nullable=False, default=0.0)

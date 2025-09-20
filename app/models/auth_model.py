@@ -2,8 +2,10 @@ from app import db
 from datetime import datetime, timezone
 from bcrypt import hashpw, checkpw, gensalt
 from uuid import uuid4
+from .base_mixin import SoftDeleteMixin
 
-class Auth(db.Model):
+
+class Auth(db.Model, SoftDeleteMixin):
     account_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
     provider = db.Column(db.String(255))
     provider_id = db.Column(db.String(255))

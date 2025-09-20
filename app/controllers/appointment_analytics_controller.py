@@ -72,23 +72,27 @@ class AppointmentAnalyticsController:
     
     def appointments_by_service_category(self):
         query = db.session.query(Appointment.category_snapshot.label("category"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.category_snapshot)
+        query = FilterAnalyticsController.apply_not_deleted(query, Service)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         return [dict(row._mapping) for row in query.all()]
     
     def appointments_by_service(self):
         query = db.session.query(Appointment.service_name_snapshot.label("service"), func.count(Appointment.appointment_id).label("count")).group_by( Appointment.service_name_snapshot)
+        query = FilterAnalyticsController.apply_not_deleted(query, Service)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.limit(10)
         return [dict(row._mapping) for row in query.all()]
     
     def appointments_by_branch(self):
         query = db.session.query(Appointment.branch_name_snapshot.label("branch"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.branch_name_snapshot)
+        query = FilterAnalyticsController.apply_not_deleted(query, Branch)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.limit(10)
         return [dict(row._mapping) for row in query.all()]
     
     def appointments_by_aesthetician(self):
         query = db.session.query(Appointment.aesthetician_name_snapshot.label("aesthetician"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.aesthetician_name_snapshot)
+        query = FilterAnalyticsController.apply_not_deleted(query, Aesthetician)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.limit(10)
         return [dict(row._mapping) for row in query.all()]
@@ -96,7 +100,6 @@ class AppointmentAnalyticsController:
     
     def appointments_status(self):
         params = FilterAnalyticsController.get_filter_params()
-
         query = db.session.query(Appointment.status, func.count(Appointment.appointment_id).label("count")).group_by(Appointment.status)
         query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
         query = FilterAnalyticsController.apply_filter_date(query, params["year"], params["month"])
@@ -105,12 +108,14 @@ class AppointmentAnalyticsController:
     
     def top_rated_aesthetician(self):
         query = db.session.query(func.concat(Aesthetician.first_name, " ",func.coalesce(Aesthetician.middle_initial, "")," ", Aesthetician.last_name).label("aesthetician"), Aesthetician.average_rate).group_by(Aesthetician.aesthetician_id)
+        query = FilterAnalyticsController.apply_not_deleted(query, Aesthetician)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.order_by(desc(Aesthetician.average_rate)).limit(10)
         return [dict(row._mapping) for row in query.all()]
     
     def top_rated_service(self):
         query = db.session.query(Service.service_name, Service.average_rate).group_by(Service.service_id).group_by(Service.service_id)
+        query = FilterAnalyticsController.apply_not_deleted(query, Service)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.order_by(desc(Service.average_rate)).limit(10)
         return [dict(row._mapping) for row in query.all()]
@@ -118,10 +123,14 @@ class AppointmentAnalyticsController:
 
     def top_rated_branch(self):
         query = db.session.query(Branch.branch_name, Branch.average_rate).group_by(Branch.branch_id).group_by(Branch.branch_id)
+        query = FilterAnalyticsController.apply_not_deleted(query, Branch)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.order_by(desc(Branch.average_rate)).limit(10)
         return [dict(row._mapping) for row in query.all()]
     
+    
+
+
 
         
         

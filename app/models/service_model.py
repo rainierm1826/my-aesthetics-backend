@@ -3,8 +3,9 @@ from uuid import uuid4
 from datetime import datetime, timezone
 from sqlalchemy import Float
 from ..helper.constant import discount_type_enum
+from .base_mixin import SoftDeleteMixin
 
-class Service(db.Model):
+class Service(db.Model, SoftDeleteMixin):
     service_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=True)
     service_name = db.Column(db.String(255), nullable=False)

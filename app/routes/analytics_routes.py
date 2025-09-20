@@ -53,7 +53,6 @@ def get_appointment_analytics():
     })
 
 
-
 # sales
 @analytics_bp.route(rule="/sales", methods=["GET"])
 def get_revenue_summary():
@@ -82,3 +81,14 @@ def get_aesthetician_analytics():
         "average_aesthetician_rating": summary_controller.avarage_aesthetician_rating(),
         "total_aestheticians": summary_controller.total_aestheticians(),
     })
+    
+
+@analytics_bp.route(rule="/service", methods=["GET"])
+def get_service_analytics():
+    return jsonify({
+        "average_aesthetician_rating":summary_controller.avarage_service_rating(),
+        "service_per_category": summary_controller.service_per_category(),
+        "sale_service": summary_controller.sale_service(),
+        "total_aestheticians": summary_controller.total_services(),
+    })
+

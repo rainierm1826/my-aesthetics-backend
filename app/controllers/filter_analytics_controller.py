@@ -11,7 +11,14 @@ class FilterAnalyticsController:
             'year': request.args.get("year", type=int),
             'branch_id': request.args.get("branch", type=str)
         }
-        
+
+    @staticmethod
+    def apply_not_deleted(query, model):
+        """Apply isDeleted = false if model has that attribute"""
+        if hasattr(model, "isDeleted"):
+            query = query.filter(model.isDeleted == False)
+        return query
+
     @staticmethod
     def apply_is_completed(query):
         return query.filter(Appointment.status == "completed")
@@ -29,6 +36,7 @@ class FilterAnalyticsController:
         if branch_id:
             query = query.filter(Appointment.branch_id == branch_id)
         return query
+    
     
     @staticmethod
     def apply_all_filters(query, month=None, year=None, branch_id=None):

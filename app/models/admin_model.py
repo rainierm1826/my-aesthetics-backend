@@ -1,9 +1,10 @@
 from ..extension import db
 from datetime import datetime, timezone
 from uuid import uuid4
+from .base_mixin import SoftDeleteMixin
 
 
-class Admin(db.Model):
+class Admin(db.Model, SoftDeleteMixin):
     admin_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
     account_id = db.Column(db.String(255), db.ForeignKey("auth.account_id", ondelete="CASCADE"), nullable=False)
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=False)
