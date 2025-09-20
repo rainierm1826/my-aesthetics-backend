@@ -86,9 +86,8 @@ def get_aesthetician_analytics():
 @analytics_bp.route(rule="/service", methods=["GET"])
 def get_service_analytics():
     return jsonify({
-        "average_aesthetician_rating":summary_controller.avarage_service_rating(),
-        "service_per_category": summary_controller.service_per_category(),
+        "average_service_rating":summary_controller.avarage_service_rating(),
         "sale_service": summary_controller.sale_service(),
-        "total_aestheticians": summary_controller.total_services(),
+        "total_services": summary_controller.total_services(),
     })
 
