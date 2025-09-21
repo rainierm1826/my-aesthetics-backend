@@ -8,8 +8,6 @@ branch_bp = Blueprint("branch", __name__)
 branch_controller = BranchController()
 
 @branch_bp.route(rule="", methods=["GET"])
-@jwt_required()
-@access_control("admin", "owner")
 def get_branches():
     return branch_controller.get_all()
 

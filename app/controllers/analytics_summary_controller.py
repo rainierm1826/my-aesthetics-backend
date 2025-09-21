@@ -16,7 +16,8 @@ class AnalyticsSummaryController:
         
     def total_appointments(self):
         query = db.session.query(func.count(Appointment.appointment_id)).filter(Appointment.status=="completed")
-        query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = FilterAnalyticsController.apply_is_completed(query)
+        query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         return query.scalar() or 0
     
     def total_revenue(self):
@@ -96,38 +97,38 @@ class AnalyticsSummaryController:
     def completion_rate(self):
         params = FilterAnalyticsController.get_filter_params()
 
-        base_query = db.session.query(Appointment.appointment_id)
+        base_query = db.session.query(Appointment.appointment_id).filter(Appointment.isDeleted == False)
         
         base_query = FilterAnalyticsController.apply_filter_branch(base_query, params['branch_id'])
         base_query = FilterAnalyticsController.apply_filter_date(base_query, params['year'], params['month'])
 
         total_appointments = base_query.count()
-
+        
         completed_query = base_query.filter(Appointment.status == "completed")
         completed_appointments = completed_query.count()
 
         if total_appointments == 0:
             return 0
 
-        return round((completed_appointments / total_appointments)*100, 2)
+        return round((completed_appointments / total_appointments) * 100, 2)
 
-    
+
     def cancellation_rate(self):
         params = FilterAnalyticsController.get_filter_params()
 
-        base_query = db.session.query(Appointment.appointment_id)
+        base_query = db.session.query(Appointment.appointment_id).filter(Appointment.isDeleted == False)
         base_query = FilterAnalyticsController.apply_filter_branch(base_query, params['branch_id'])
         base_query = FilterAnalyticsController.apply_filter_date(base_query, params['year'], params['month'])
-
+        
         total_appointments = base_query.count()
 
         cancelled_query = base_query.filter(Appointment.status == "cancelled")
-        cancelled_query = cancelled_query.count()
+        cancelled_appointments = cancelled_query.count()
 
         if total_appointments == 0:
             return 0
 
-        return round((cancelled_query / total_appointments)*100, 2)
+        return round((cancelled_appointments / total_appointments) * 100, 2)
 
 
     def branch_completion_rate(self):

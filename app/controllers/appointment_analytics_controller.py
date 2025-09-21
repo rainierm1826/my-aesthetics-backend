@@ -103,6 +103,7 @@ class AppointmentAnalyticsController:
         query = db.session.query(Appointment.status, func.count(Appointment.appointment_id).label("count")).group_by(Appointment.status)
         query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
         query = FilterAnalyticsController.apply_filter_date(query, params["year"], params["month"])
+        query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         return [dict(row._mapping) for row in query.all()]
     
     
