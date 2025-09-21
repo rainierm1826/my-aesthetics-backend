@@ -8,25 +8,26 @@ appointment_bp = Blueprint("appointment", __name__)
 appointment_controller = AppointmentController()
 
 @appointment_bp.route("", methods=["POST"])
-# @jwt_required()
-# @access_control("admin", "owner")
+@jwt_required()
+@access_control("admin", "owner", "customer")
 def create_appointment():
     return appointment_controller.create()
 
 @appointment_bp.route("/all", methods=["GET"])
-# @jwt_required()
-# @access_control("admin", "owner")
+@jwt_required()
+@access_control("admin", "owner")
 def get_appointments():
     return appointment_controller.get_all()
 
+# get your appointment
 @appointment_bp.route("", methods=["GET"])
-# @jwt_required()
+@jwt_required()
 def get_appointment():
     return appointment_controller.get_all()
 
 @appointment_bp.route("", methods=["PATCH"])
-# @jwt_required()
-# @access_control("admin", "owner")
+@jwt_required()
+@access_control("admin", "owner")
 def update_appointment():
     return appointment_controller.update()
 

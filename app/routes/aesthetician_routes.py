@@ -7,8 +7,8 @@ aesthetician_bp = Blueprint("aesthetician", __name__)
 aesthetician_controller = AestheticianController()
 
 @aesthetician_bp.route(rule="", methods=["POST"])
-# @jwt_required()
-# @access_control("admin", "owner")
+@jwt_required()
+@access_control("admin", "owner")
 def create_aesthetician():
     return aesthetician_controller.create()
 
@@ -27,11 +27,13 @@ def delete_aesthetician(id):
     return aesthetician_controller.delete(id)
 
 @aesthetician_bp.route(rule="", methods=["PATCH"])
-# @jwt_required()
-# @access_control("admin", "owner")
+@jwt_required()
+@access_control("admin", "owner")
 def update_aesthetician():
     return aesthetician_controller.update()
 
 @aesthetician_bp.route(rule="/aesthetician-name", methods=["GET"])
+@jwt_required()
+@access_control("admin", "owner")
 def get_aesthetician_name():
     return aesthetician_controller.get_aesthetician_name()
