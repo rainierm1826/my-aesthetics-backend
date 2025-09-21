@@ -66,6 +66,7 @@ class AnalyticsSummaryController:
     def total_aestheticians(self):
         params = FilterAnalyticsController.get_filter_params()
         query = db.session.query(func.count(Aesthetician.aesthetician_id))
+        query = FilterAnalyticsController.apply_not_deleted(query, Aesthetician)
         query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
         query = FilterAnalyticsController.apply_filter_date(query, params["month"], params["year"])
         return query.scalar() or 0
@@ -73,6 +74,7 @@ class AnalyticsSummaryController:
     def total_branches(self):
         params = FilterAnalyticsController.get_filter_params()
         query = db.session.query(func.count(Branch.branch_id))
+        query = FilterAnalyticsController.apply_not_deleted(query, Aesthetician)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
         query = FilterAnalyticsController.apply_filter_date(query, params["month"], params["year"])
@@ -95,6 +97,7 @@ class AnalyticsSummaryController:
         params = FilterAnalyticsController.get_filter_params()
 
         base_query = db.session.query(Appointment.appointment_id)
+        
         base_query = FilterAnalyticsController.apply_filter_branch(base_query, params['branch_id'])
         base_query = FilterAnalyticsController.apply_filter_date(base_query, params['year'], params['month'])
 
@@ -173,7 +176,7 @@ class AnalyticsSummaryController:
             )
             .group_by(Aesthetician.experience)
         )
-
+        query = FilterAnalyticsController.apply_not_deleted(query, Aesthetician)
         return [dict(row._mapping) for row in query.all()]
     
     def sale_service(self):
@@ -212,7 +215,7 @@ class AnalyticsSummaryController:
             )
             .group_by(daily_counts.c.branch)
         )
-
+        query = FilterAnalyticsController.apply_not_deleted(query, Service)
         return [dict(row._mapping) for row in query.all()]
 
 

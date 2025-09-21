@@ -14,6 +14,7 @@ def create_appointment():
     return appointment_controller.create()
 
 @appointment_bp.route("/all", methods=["GET"])
+# @jwt_required()
 # @access_control("admin", "owner")
 def get_appointments():
     return appointment_controller.get_all()

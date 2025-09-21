@@ -2,6 +2,8 @@ from ..controllers.analytics_summary_controller import AnalyticsSummaryControlle
 from ..controllers.appointment_analytics_controller import AppointmentAnalyticsController
 from ..controllers.sales_analytics_controller import SalesAnalyticsController
 from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required
+from ..helper.decorators import access_control
 
 analytics_bp = Blueprint("analytics", __name__)
 summary_controller = AnalyticsSummaryController()
@@ -11,6 +13,8 @@ sales_analytics_controller = SalesAnalyticsController()
 
 # summary
 @analytics_bp.route(rule="/appointment/summary", methods=["GET"])
+@jwt_required()
+@access_control("owner")
 def get_appointment_summary():
     return jsonify({
         "total_appointments": summary_controller.total_appointments(),
@@ -18,17 +22,12 @@ def get_appointment_summary():
         "completion_rate":summary_controller.completion_rate(),
         "cancellation_rate":summary_controller.cancellation_rate()
     })
-    
-# "average_service_rating": summary_controller.avarage_service_rating(),
-# "average_aesthetician_rating": summary_controller.avarage_aesthetician_rating(),
-# "total_service": summary_controller.total_services(),
-# "total_branches": summary_controller.total_branches(),
-# "total_aestheticians": summary_controller.total_aestheticians(),
-# "total_active_vouchers": summary_controller.total_active_vouchers(),
-# "sex-count-by-aesthetician": summary_controller.sex_count_by_aesthetician(),
+
 
 
 @analytics_bp.route(rule="/sales/summary", methods=["GET"])
+@jwt_required()
+@access_control("owner")
 def get_sales_summary():
     return jsonify({
         "total_revenue": summary_controller.total_revenue(),
@@ -39,6 +38,8 @@ def get_sales_summary():
 
 # appointments
 @analytics_bp.route(rule="/appointments", methods=["GET"])
+@jwt_required()
+@access_control("owner")
 def get_appointments_analytics():
     return jsonify({
         "appointments_overtime": appointment_analytics_controller.appointment_overtime(),
@@ -55,6 +56,8 @@ def get_appointments_analytics():
 
 # sales
 @analytics_bp.route(rule="/sales", methods=["GET"])
+@jwt_required()
+@access_control("owner")
 def get_revenue_summary():
     return jsonify({
         "revenue_overtime": sales_analytics_controller.revenue_overtime(),
@@ -66,6 +69,8 @@ def get_revenue_summary():
     })
     
 @analytics_bp.route(rule="/branch", methods=["GET"])
+@jwt_required()
+@access_control("owner")
 def get_branch_analytics():
     return jsonify({
         "branch_completion_rate": summary_controller.branch_completion_rate(),
@@ -75,6 +80,8 @@ def get_branch_analytics():
 
 
 @analytics_bp.route(rule="/aesthetician", methods=["GET"])
+@jwt_required()
+@access_control("owner")
 def get_aesthetician_analytics():
     return jsonify({
         "aesthetician_experience": summary_controller.aesthetician_experience(),
@@ -84,6 +91,8 @@ def get_aesthetician_analytics():
     
 
 @analytics_bp.route(rule="/service", methods=["GET"])
+@jwt_required()
+@access_control("owner")
 def get_service_analytics():
     return jsonify({
         "average_service_rating":summary_controller.avarage_service_rating(),
@@ -93,6 +102,8 @@ def get_service_analytics():
     
 
 @analytics_bp.route(rule="/appointment", methods=["GET"])
+@jwt_required()
+@access_control("owner")
 def get_appointment_analytics():
     return jsonify({
         "average_service_rating":summary_controller.appointments_per_branch()
