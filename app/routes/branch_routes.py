@@ -29,7 +29,7 @@ def delete_branch(id):
 
 @branch_bp.route("", methods=["PATCH"])
 @jwt_required()
-@access_control("admin", "owner")
+@access_control("owner")
 def update_branch():
     return branch_controller.update()
 
