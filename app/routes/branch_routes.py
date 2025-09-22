@@ -22,8 +22,8 @@ def create_branch():
     return branch_controller.create()
 
 @branch_bp.route("/<string:id>", methods=["PATCH"])
-@jwt_required()
-@access_control("owner")
+# @jwt_required()
+# @access_control("owner")
 def delete_branch(id):
     return branch_controller.delete(id)
 

@@ -126,6 +126,7 @@ class BaseCRUDController:
                 image = request.files.get("image")
             
             data=convert_formdata_types(data)
+            print(data)
                         
             if hasattr(self, "_custom_update"):
                 new_instance = self._custom_update(data)

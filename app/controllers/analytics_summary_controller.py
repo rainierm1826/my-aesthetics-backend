@@ -27,17 +27,20 @@ class AnalyticsSummaryController:
     
     def avarage_service_rating(self):
         query = db.session.query(func.avg(Service.average_rate))
+        query = FilterAnalyticsController.apply_not_deleted(query, Service)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         return round(query.scalar(), 2) or 0
     
     def avarage_branch_rating(self):
         query = db.session.query(func.avg(Branch.average_rate))
+        query = FilterAnalyticsController.apply_not_deleted(query, Branch)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         return round(query.scalar(), 2) or 0
     
     
     def avarage_aesthetician_rating(self):
         query = db.session.query(func.avg(Aesthetician.average_rate))
+        query = FilterAnalyticsController.apply_not_deleted(query, Aesthetician)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         return round(query.scalar(), 2) or 0
     
@@ -61,6 +64,7 @@ class AnalyticsSummaryController:
         query = db.session.query(func.count(Service.service_id))
         query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
         query = FilterAnalyticsController.apply_filter_date(query, params["month"], params["year"])
+        query = FilterAnalyticsController.apply_not_deleted(query, Service)
         return query.scalar() or 0
     
     
@@ -183,7 +187,7 @@ class AnalyticsSummaryController:
     def sale_service(self):
         params = FilterAnalyticsController.get_filter_params()
         query = db.session.query(func.count(Service.service_id).label("count"))
-        query = query.filter(Service.is_sale==True)
+        query = query.filter(Service.is_sale==True, Service.isDeleted==False)
         query = FilterAnalyticsController.apply_not_deleted(query, Service)
         query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
         query = FilterAnalyticsController.apply_filter_date(query, params["month"], params["year"])
