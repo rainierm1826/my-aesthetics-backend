@@ -79,6 +79,18 @@ def get_revenue_summary():
         "revenue_by_branch": sales_analytics_controller.revenue_by_branch()
     })
     
+@analytics_bp.route(rule="/appointment/accuracy", methods=["GET"])
+@jwt_required()
+@access_control("owner")
+def check_appointment_accuracy():
+    return jsonify(appointment_analytics_controller.appointment_accuracy_check())
+
+@analytics_bp.route(rule="/revenue/accuracy", methods=["GET"])
+@jwt_required()
+@access_control("owner")
+def check_revenue_accuracy():
+    return jsonify(sales_analytics_controller.sales_accuracy_check())
+    
 @analytics_bp.route(rule="/branch", methods=["GET"])
 @jwt_required()
 @access_control("owner")
