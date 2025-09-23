@@ -1,10 +1,12 @@
 from ..controllers.filter_analytics_controller import FilterAnalyticsController
+from ..controllers.base_filter_controller import BasicFilterAnalyticsController
 from ..extension import db
 from sqlalchemy import func, desc, extract, case
 from ..models.appointment_model import Appointment
 from ..models.service_model import Service
 from ..models.aesthetician_model import Aesthetician
 from ..models.branch_model import Branch
+
 from flask import request
 
 
@@ -101,30 +103,30 @@ class AppointmentAnalyticsController:
         params = FilterAnalyticsController.get_filter_params()
         query = db.session.query(Appointment.status, func.count(Appointment.appointment_id).label("count")).group_by(Appointment.status)
         query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
-        query = FilterAnalyticsController.apply_filter_date(query, params["year"], params["month"])
+        query = FilterAnalyticsController.apply_filter_date(query, params["month"], params["year"])
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         return [dict(row._mapping) for row in query.all()]
     
     
     def top_rated_aesthetician(self):
-        query = db.session.query(func.concat(Aesthetician.first_name, " ",func.coalesce(Aesthetician.middle_initial, "")," ", Aesthetician.last_name).label("aesthetician"), Aesthetician.average_rate).group_by(Aesthetician.aesthetician_id)
-        query = FilterAnalyticsController.apply_not_deleted(query, Aesthetician)
-        query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = db.session.query(
+            func.concat(Aesthetician.first_name, " ", func.coalesce(Aesthetician.middle_initial, ""), " ", Aesthetician.last_name).label("aesthetician"), 
+            Aesthetician.average_rate
+        ).group_by(Aesthetician.aesthetician_id)
+        
+        query = BasicFilterAnalyticsController.apply_filters_from_request(query, Aesthetician)
         query = query.order_by(desc(Aesthetician.average_rate)).limit(10)
         return [dict(row._mapping) for row in query.all()]
-    
+
     def top_rated_service(self):
-        query = db.session.query(Service.service_name, Service.average_rate).group_by(Service.service_id).group_by(Service.service_id)
-        query = FilterAnalyticsController.apply_not_deleted(query, Service)
-        query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = db.session.query(Service.service_name, Service.average_rate).group_by(Service.service_id)
+        query = BasicFilterAnalyticsController.apply_filters_from_request(query, Service)
         query = query.order_by(desc(Service.average_rate)).limit(10)
         return [dict(row._mapping) for row in query.all()]
 
-
     def top_rated_branch(self):
-        query = db.session.query(Branch.branch_name, Branch.average_rate).group_by(Branch.branch_id).group_by(Branch.branch_id)
-        query = FilterAnalyticsController.apply_not_deleted(query, Branch)
-        query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = db.session.query(Branch.branch_name, Branch.average_rate).group_by(Branch.branch_id)
+        query = BasicFilterAnalyticsController.apply_filters_from_request(query, Branch)
         query = query.order_by(desc(Branch.average_rate)).limit(10)
         return [dict(row._mapping) for row in query.all()]
     

@@ -48,8 +48,6 @@ def get_sales_summary():
     })
 
 
-
-
 # appointments
 @analytics_bp.route(rule="/appointments", methods=["GET"])
 @jwt_required()
