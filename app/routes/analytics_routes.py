@@ -23,7 +23,21 @@ def get_appointment_summary():
         "cancellation_rate":summary_controller.cancellation_rate()
     })
 
-
+@analytics_bp.route(rule="/appointments-overtime", methods=["GET"])
+@jwt_required()
+@access_control("owner")
+def get_appointments_overtime():
+    return jsonify({
+        "appointments_overtime": appointment_analytics_controller.appointment_overtime()
+    })
+    
+@analytics_bp.route(rule="/revenue-overtime", methods=["GET"])
+@jwt_required()
+@access_control("owner")
+def get_revenue_overtime():
+    return jsonify({
+        "revenue_overtime": sales_analytics_controller.revenue_overtime(),
+    })
 
 @analytics_bp.route(rule="/sales/summary", methods=["GET"])
 @jwt_required()
@@ -42,7 +56,6 @@ def get_sales_summary():
 @access_control("owner")
 def get_appointments_analytics():
     return jsonify({
-        "appointments_overtime": appointment_analytics_controller.appointment_overtime(),
         "appointments_by_service_category": appointment_analytics_controller.appointments_by_service_category(),
         "appointments_by_service": appointment_analytics_controller.appointments_by_service(),
         "appointments_by_branch": appointment_analytics_controller.appointments_by_branch(),

@@ -26,7 +26,6 @@ class AppointmentAnalyticsController:
             month_num = extract("month", Appointment.created_at)
 
             query = db.session.query(
-                extract("year", Appointment.created_at).label("year"),
                 case(
                     (month_num == 1, "January"),
                     (month_num == 2, "February"),
@@ -42,7 +41,7 @@ class AppointmentAnalyticsController:
                     (month_num == 12, "December"),
                 ).label("month"),
                 func.count(Appointment.appointment_id).label("count"),
-            ).group_by("year", "month", month_num).order_by("year", month_num)
+            ).group_by( "month", month_num).order_by( month_num)
 
             
         elif group_by == "weekday":

@@ -21,7 +21,6 @@ class SalesAnalyticsController:
             month_num = extract("month", Appointment.created_at)
 
             query = db.session.query(
-                extract("year", Appointment.created_at).label("year"),
                 case(
                     (month_num == 1, "January"),
                     (month_num == 2, "February"),
@@ -36,8 +35,8 @@ class SalesAnalyticsController:
                     (month_num == 11, "November"),
                     (month_num == 12, "December"),
                 ).label("month"),
-                func.sum(Appointment.to_pay).label("count"),
-            ).group_by("year", "month", month_num).order_by("year", month_num)
+                func.sum(Appointment.to_pay).label("revenue"),
+            ).group_by("month", month_num).order_by(month_num)
 
         elif group_by == "weekday":
             dow = extract("dow", Appointment.created_at)
