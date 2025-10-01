@@ -19,7 +19,7 @@ def linear_regression_model(data, y_values, group_by=None):
         future_X = np.arange(len(df), len(df) + 2).reshape(-1, 1) 
         future_pred = model.predict(future_X)
 
-        future_years = list(range(int(df["year"].iloc[-1]) + 1, int(df["year"].iloc[-1]) + 2))
+        future_years = list(range(int(df["year"].iloc[-1]) + 1, int(df["year"].iloc[-1]) + 3))
         for year, pred in zip(future_years, future_pred):
             data.append({"year": str(year), y_values: int(pred), "type": "predicted"})
 

@@ -5,6 +5,7 @@ from .config import Config
 import os
 from dotenv import load_dotenv
 import cloudinary
+import xendit
 
 
 def create_app():
@@ -15,6 +16,8 @@ def create_app():
     db.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
+    
+    xendit.set_api_key(os.getenv("XENDIT_API_KEY"))
     
     cloudinary.config( 
     cloud_name = os.getenv("CLOUD_NAME"), 
@@ -44,7 +47,7 @@ def create_app():
     from .routes.branch_routes import branch_bp
     from .routes.services_routes import service_bp
     from .routes.user_routes import user_bp
-    from .routes.appointment_routes import appointment_bp
+    from .routes.appointment_routes import appointment_bp, webhook_bp
     from .routes.aesthetician_routes import aesthetician_bp
     from .routes.voucher_routes import voucher_bp
     from .routes.analytics_routes import analytics_bp
@@ -58,6 +61,7 @@ def create_app():
     app.register_blueprint(service_bp, url_prefix="/service")
     app.register_blueprint(aesthetician_bp, url_prefix="/aesthetician")
     app.register_blueprint(appointment_bp, url_prefix="/appointment")
+    app.register_blueprint(webhook_bp, url_prefix="/api")
     app.register_blueprint(analytics_bp, url_prefix="/analytics")
     app.register_blueprint(voucher_bp, url_prefix="/voucher")
     

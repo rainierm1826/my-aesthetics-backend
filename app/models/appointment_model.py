@@ -1,7 +1,7 @@
 from app import db
 from ..helper.functions import generate_id
 from datetime import date
-from ..helper.constant import payment_method_enum, payment_status_enum, appointment_status_enum, discount_type_enum
+from ..helper.constant import payment_method_enum, down_payment_status_enum, payment_status_enum, appointment_status_enum, discount_type_enum
 from sqlalchemy import Float
 from .base_mixin import SoftDeleteMixin
 
@@ -52,16 +52,22 @@ class Appointment(db.Model, SoftDeleteMixin):
     # transaction
     down_payment_method = db.Column(payment_method_enum, nullable=True)
     down_payment = db.Column(db.Float, nullable=False, default=0.0)
+    down_payment_status = db.Column(down_payment_status_enum, nullable=True)
     final_payment_method = db.Column(payment_method_enum, nullable=False)
     to_pay = db.Column(db.Float, nullable=False, default=0.0) # the price you're going to pay. the pro aesthetician, voucher and down payment if applicable is already deducted  
     payment_status = db.Column(payment_status_enum, nullable=False) # partial for dp and completed for complete payment
+    
+    # xendit
+    xendit_invoice_id = db.Column(db.String(255), nullable=True)
+    xendit_external_id = db.Column(db.String(255), nullable=True, unique=True)
+    down_payment_paid_at = db.Column(db.DateTime, nullable=True)
 
 
     status = db.Column(appointment_status_enum, nullable=False)
    
     isDeleted = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.Date, default=date.today)
-    updated_at = db.Column(db.Date, default=date.today, onupdate=date.today)
+    created_at = db.Column(db.Date, default=date.today())
+    updated_at = db.Column(db.Date, default=date.today(), onupdate=date.today())
         
     
     # relationships
@@ -104,8 +110,8 @@ class Appointment(db.Model, SoftDeleteMixin):
             "final_payment_method": self.final_payment_method,
             "to_pay": self.to_pay,
             "payment_status": self.payment_status,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat()
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
     
 

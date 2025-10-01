@@ -22,26 +22,23 @@ class AnalyticsSummaryController:
     
     def total_revenue(self):
         query = db.session.query(func.sum(Appointment.to_pay)).filter(Appointment.status=="completed")
-        query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         return query.scalar() or 0
     
     def avarage_service_rating(self):
         query = db.session.query(func.avg(Service.average_rate))
         query = FilterAnalyticsController.apply_not_deleted(query, Service)
-        query = FilterAnalyticsController.apply_filters_from_request(query)
         return round(query.scalar(), 2) or 0
     
     def avarage_branch_rating(self):
         query = db.session.query(func.avg(Branch.average_rate))
         query = FilterAnalyticsController.apply_not_deleted(query, Branch)
-        query = FilterAnalyticsController.apply_filters_from_request(query)
         return round(query.scalar(), 2) or 0
     
     
     def avarage_aesthetician_rating(self):
         query = db.session.query(func.avg(Aesthetician.average_rate))
         query = FilterAnalyticsController.apply_not_deleted(query, Aesthetician)
-        query = FilterAnalyticsController.apply_filters_from_request(query)
         return round(query.scalar(), 2) or 0
     
 
@@ -89,12 +86,14 @@ class AnalyticsSummaryController:
     def total_active_vouchers(self):
         query = db.session.query(func.count(Voucher.voucher_code)).filter(Voucher.valid_until > date.today())
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = FilterAnalyticsController.apply_not_deleted(query, Voucher)
         return query.scalar() or 0
     
     
     def sex_count_by_aesthetician(self):
         query = db.session.query(func.count(Aesthetician.sex).label("count"), Aesthetician.sex).group_by(Aesthetician.sex)
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = FilterAnalyticsController.apply_not_deleted(query, Aesthetician)
         return [dict(row._mapping) for row in query.all()]
     
     
@@ -105,6 +104,7 @@ class AnalyticsSummaryController:
         
         base_query = FilterAnalyticsController.apply_filter_branch(base_query, params['branch_id'])
         base_query = FilterAnalyticsController.apply_filter_date(base_query, params['year'], params['month'])
+        base_query = FilterAnalyticsController.apply_not_deleted(base_query, Appointment)
 
         total_appointments = base_query.count()
         
@@ -123,7 +123,8 @@ class AnalyticsSummaryController:
         base_query = db.session.query(Appointment.appointment_id).filter(Appointment.isDeleted == False)
         base_query = FilterAnalyticsController.apply_filter_branch(base_query, params['branch_id'])
         base_query = FilterAnalyticsController.apply_filter_date(base_query, params['year'], params['month'])
-        
+        base_query = FilterAnalyticsController.apply_not_deleted(base_query, Appointment)
+
         total_appointments = base_query.count()
 
         cancelled_query = base_query.filter(Appointment.status == "cancelled")
@@ -144,6 +145,7 @@ class AnalyticsSummaryController:
             .group_by(Appointment.branch_id)
             .subquery()
         )
+        
 
         completed_query = (
             db.session.query(
@@ -151,6 +153,7 @@ class AnalyticsSummaryController:
                 func.count(Appointment.appointment_id).label("completed")
             )
             .filter(Appointment.status == "completed")
+            .filter(Appointment.isDeleted == False) 
             .group_by(Appointment.branch_id)
             .subquery()
         )
@@ -170,6 +173,7 @@ class AnalyticsSummaryController:
     def appointments_by_aesthetician(self):
         query = db.session.query(Appointment.aesthetician_name_snapshot.label("aesthetician"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.aesthetician_name_snapshot)
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         query = query.limit(10)
         return [dict(row._mapping) for row in query.all()]
 
@@ -209,6 +213,7 @@ class AnalyticsSummaryController:
                 cast(Appointment.created_at, Date).label("day"),
                 func.count(Appointment.appointment_id).label("daily_count")
             )
+            .filter(Appointment.isDeleted == False)
             .group_by(Appointment.branch_id, Appointment.branch_name_snapshot, cast(Appointment.created_at, Date))
             .subquery()
         )
@@ -220,8 +225,9 @@ class AnalyticsSummaryController:
             )
             .group_by(daily_counts.c.branch)
         )
-        query = FilterAnalyticsController.apply_not_deleted(query, Service)
+
         return [dict(row._mapping) for row in query.all()]
+
 
 
         

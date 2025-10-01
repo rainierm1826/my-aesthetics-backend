@@ -3,15 +3,21 @@ from ..models.appointment_model import Appointment
 from ..models.walk_in_model import WalkIn
 from ..models.user_model import User
 from ..extension import db
-from flask_jwt_extended import get_jwt_identity
-from flask import jsonify, request
+from flask_jwt_extended import get_jwt_identity, get_jwt
+from flask import jsonify
 from ..models.branch_model import Branch
 from ..models.aesthetician_model import Aesthetician
 from ..models.service_model import Service
 from ..models.voucher_model import Voucher
 from ..helper.functions import validate_required_fields
-from sqlalchemy import func, asc, desc, case
+from sqlalchemy import func, asc, case
 from datetime import date
+from xendit.apis import InvoiceApi
+from ..helper.constant import payment_methods, customer_notification_preference
+import xendit
+import time
+import os
+
 
 class AppointmentController(BaseCRUDController):
     def __init__(self):
@@ -40,11 +46,14 @@ class AppointmentController(BaseCRUDController):
             (Appointment.status == "waiting", 1),
             (Appointment.status == "on-process", 2),
             (Appointment.status == "completed", 3),
+            (Appointment.status == "pending", 5),
             (Appointment.status == "cancelled", 4),
             else_=5,
         )
         return query.order_by(asc(status_order), asc(Appointment.slot_number))
     
+    
+    # used by owner or admin
     def _custom_update(self, data):
     # Fetch the appointment being updated
         appointment = Appointment.query.get(data["appointment_id"])
@@ -71,7 +80,9 @@ class AppointmentController(BaseCRUDController):
         
         db.session.commit()
         return appointment
-         
+
+    
+    
     def _custom_create(self, data):
         # Walk-in logic
         if data["is_walk_in"] == True:
@@ -119,7 +130,6 @@ class AppointmentController(BaseCRUDController):
         return new_walk_in
 
     def _create_appointment(self, data, walk_in_id=None, user_id=None):
-        print(data)
         is_walk_in = data.pop("is_walk_in")
         data["walk_in_id"] = walk_in_id
         data["user_id"] = user_id
@@ -170,34 +180,97 @@ class AppointmentController(BaseCRUDController):
         # Final amount can't go below zero
         to_pay = max(0, to_pay)
         
+        xendit_invoice_url = None
+        xendit_invoice_id = None
+        
         if is_walk_in:
             to_pay = appointment_data.get("to_pay", to_pay)
             down_payment_method = None
             down_payment = 0
             to_pay = to_pay
             payment_status = "pending"
+            status = "waiting"
         else:
-            down_payment_method = "xendit"
             down_payment = to_pay * 0.2
-            to_pay = to_pay - down_payment
-            payment_status = "pending"
+            remaining_payment = to_pay - down_payment
+            claims = get_jwt()
+            email = claims.get("email")
+            user = User.query.get(user_id)
+            
+            if not user:
+                return jsonify({"status": False, "message": "User not found"}), 404
         
-        # Set appointment payments/status
+            customer_name = f"{user.first_name} {user.middle_initial or ''} {user.last_name}".strip()
+            
+            try:
+                client = xendit.ApiClient()
+                api_instance = InvoiceApi(client)
+                
+                external_id = f"appointment-{int(time.time())}-{user_id}"
+                
+                invoice_parameters = {
+                    "external_id": external_id,
+                    "amount": int(down_payment),
+                    "payer_email": email,
+                    "description": f"Down payment for {service.service_name} - {branch.branch_name}",
+                    "currency": "PHP",
+                    "invoice_duration": 3600,
+                    "success_redirect_url": f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/payment/success",
+                    "failure_redirect_url": f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/payment/failed",
+                    "customer": {
+                        "given_names": customer_name,
+                        "mobile_number": user.phone_number,
+                        "email": email
+                    },
+                    "customer_notification_preference": customer_notification_preference,
+                    "payment_methods":  payment_methods,
+                    "items": [
+                        {
+                            "name": f"Down payment - {service.service_name}",
+                            "quantity": 1,
+                            "price": int(down_payment)
+                        }
+                    ],
+                    "metadata": {
+                        "user_id": str(user_id),
+                        "service_id": str(appointment_data["service_id"]),
+                        "aesthetician_id": str(appointment_data["aesthetician_id"]),
+                        "branch_id": str(appointment_data["branch_id"]),
+                        "payment_type": "down_payment"
+                    }
+                }
+                response = api_instance.create_invoice(create_invoice_request=invoice_parameters)
+                xendit_invoice_url=response.invoice_url
+                xendit_invoice_id=response.id
+            except xendit.XenditSdkException as e:
+                return jsonify({
+                "status": False, 
+                "message": f"Failed to create payment invoice: {str(e)}"
+            }), 500
+            
+                    
+            down_payment_method = "xendit"
+            to_pay = remaining_payment
+            payment_status = "pending"
+            status = "pending" 
+            
+            
         appointment_data.update({
             "down_payment_method": down_payment_method,
-            "status": "waiting",
+            "status": status,
             "payment_status": payment_status,
             "to_pay": to_pay,
-            "down_payment": down_payment
+            "down_payment": down_payment,
+            "xendit_invoice_id": xendit_invoice_id,
+            "xendit_external_id": f"appointment-{int(time.time())}-{user_id}" if not is_walk_in else None
         })
-        
-        # Update aesthetician availability
-        aesthetician.availability = "working"
-        
-        # Slot number (reset daily)
-        from sqlalchemy import or_
 
-# Get the current max slot for today ignoring cancelled appointments
+        if is_walk_in:
+            aesthetician.availability = "working"
+        
+
+        # Slot number (reset daily)
+        # Get the current max slot for today ignoring cancelled appointments
         max_slot = db.session.query(func.max(Appointment.slot_number)) \
             .filter(
                 Appointment.branch_id == appointment_data['branch_id'],
@@ -218,7 +291,6 @@ class AppointmentController(BaseCRUDController):
         elif user_id:
             user = User.query.get(user_id)
             if user:
-                customer_name = f"{user.first_name} {user.middle_initial or ''} {user.last_name}".strip()
                 appointment_data["customer_name_snapshot"] = customer_name
                 appointment_data["phone_number"] = user.phone_number
 
@@ -248,7 +320,32 @@ class AppointmentController(BaseCRUDController):
         
         new_appointment = Appointment(**appointment_data)
         db.session.add(new_appointment)
-        return new_appointment
+        
+        # At the end of the function, replace the return statements with:
+
+        if not is_walk_in and xendit_invoice_url:
+            new_appointment.payment_url = xendit_invoice_url
+            new_appointment.payment_required = True
+            
+            db.session.commit() 
+            db.session.refresh(new_appointment)  
+            
+            return jsonify({
+                "status": True,
+                "message": "Appointment created successfully",
+                "appointment": new_appointment.to_dict(), 
+                "invoice_url": xendit_invoice_url,
+            }), 201
+
+        # For walk-in appointments
+        db.session.commit()
+        db.session.refresh(new_appointment)
+
+        return jsonify({
+            "status": True,
+            "message": "Walk-in appointment created successfully",
+            "appointment": new_appointment.to_dict(),
+        }), 201
 
     def _update_average_rating(self, model, model_id_field, appointment_fk_field, rating_field):
         ids = db.session.query(model_id_field).distinct().all()
