@@ -4,7 +4,7 @@ from ..models.walk_in_model import WalkIn
 from ..models.user_model import User
 from ..extension import db
 from flask_jwt_extended import get_jwt_identity, get_jwt
-from flask import jsonify
+from flask import jsonify, request
 from ..models.branch_model import Branch
 from ..models.aesthetician_model import Aesthetician
 from ..models.service_model import Service
@@ -346,6 +346,37 @@ class AppointmentController(BaseCRUDController):
             "message": "Walk-in appointment created successfully",
             "appointment": new_appointment.to_dict(),
         }), 201
+
+    # xendit webhooks. use for updating dbs if paid or not
+    def xendit_webhook():
+        try:
+            payload = request.json
+            event = payload.get("status")
+            invoice_id = payload.get("id")
+            appointment = Appointment.query.filter_by(xendit_invoice_id=invoice_id).first()
+            if not appointment:
+                return jsonify({"status": True, "message": "appointment not found"}), 200  
+            
+            if event == "PAID":
+                appointment.down_payment_status = "completed"
+                appointment.status = "waiting" 
+                appointment.down_payment_paid_at = date.today()
+                appointment.payment_status = "partial"
+            elif event == "EXPIRED":
+                appointment.down_payment_status = "cancelled"
+                appointment.status = "cancelled"
+            else:
+                appointment.down_payment_status = event.lower()
+
+            appointment.xendit_invoice_id = invoice_id
+            db.session.commit()
+
+            return jsonify({"status": True, "message": "webhook processed"}), 200
+
+        except Exception as e:
+            print(f"❌ Webhook error: {str(e)}")
+            return jsonify({"status": False, "message": str(e)}), 500
+
 
     def _update_average_rating(self, model, model_id_field, appointment_fk_field, rating_field):
         ids = db.session.query(model_id_field).distinct().all()

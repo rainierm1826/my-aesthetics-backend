@@ -43,32 +43,5 @@ def delete_appointment(id):
 
 
 @webhook_bp.route("/webhook/xendit", methods=["POST"])
-def xendit_webhook():
-    try:
-        payload = request.json
-        event = payload.get("status")
-        invoice_id = payload.get("id")
-        appointment = Appointment.query.filter_by(xendit_invoice_id=invoice_id).first()
-        if not appointment:
-            return jsonify({"status": True, "message": "appointment not found"}), 200  
-        
-        if event == "PAID":
-            appointment.down_payment_status = "completed"
-            appointment.status = "waiting" 
-            appointment.down_payment_paid_at = date.today()
-            appointment.payment_status = "partial"
-        elif event == "EXPIRED":
-            appointment.down_payment_status = "cancelled"
-            appointment.status = "cancelled"
-        else:
-            appointment.down_payment_status = event.lower()
-
-        appointment.xendit_invoice_id = invoice_id
-        db.session.commit()
-
-        return jsonify({"status": True, "message": "webhook processed"}), 200
-
-    except Exception as e:
-        print(f"❌ Webhook error: {str(e)}")
-        return jsonify({"status": False, "message": str(e)}), 500
-
+def get_xendit_webhook():
+    return appointment_controller.xendit_webhook()
