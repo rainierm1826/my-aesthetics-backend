@@ -104,13 +104,13 @@ class AppointmentController(BaseCRUDController):
             if not user:
                 return jsonify({"status": False, "message": "user not found"}), 404
             # check if appointment already exists
-            pending_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "pending").first()
+            pending_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "pending", Appointment.isDeleted==False).first()
             if pending_appointment:
-                return jsonify({"status": False, "message": "appointment already exists"}), 400
+                return jsonify({"status": False, "message": "Appointment already exists"}), 400
             # check if user is in waiting list
-            waiting_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "waiting").first()
+            waiting_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "waiting", Appointment.isDeleted==False).first()
             if waiting_appointment:
-                return jsonify({"status": False, "message": "you are in waiting list"}), 400
+                return jsonify({"status": False, "message": "You are in waiting list"}), 400
             
             new_appointment = self._create_appointment(data, user_id=user.user_id)
             return new_appointment
