@@ -348,7 +348,7 @@ class AppointmentController(BaseCRUDController):
         }), 201
 
     # xendit webhooks. use for updating dbs if paid or not
-    def xendit_webhook():
+    def xendit_webhook(self):
         try:
             payload = request.json
             event = payload.get("status")
