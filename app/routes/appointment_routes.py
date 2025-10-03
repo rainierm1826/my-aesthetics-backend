@@ -33,6 +33,12 @@ def get_history():
 def update_appointment():
     return appointment_controller.update()
 
+@appointment_bp.route("/reviews", methods=["PATCH"])
+@jwt_required()
+@access_control("customer")
+def update_review():
+    return appointment_controller.update_reviews()
+
 @appointment_bp.route("/<string:id>", methods=["PATCH"])
 # @jwt_required()
 # @access_control("admin", "owner")

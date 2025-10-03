@@ -213,7 +213,7 @@ class AnalyticsSummaryController:
                 cast(Appointment.created_at, Date).label("day"),
                 func.count(Appointment.appointment_id).label("daily_count")
             )
-            .filter(Appointment.isDeleted == False)
+            .filter(Appointment.isDeleted.is_(False), Appointment.status=="completed")
             .group_by(Appointment.branch_id, Appointment.branch_name_snapshot, cast(Appointment.created_at, Date))
             .subquery()
         )

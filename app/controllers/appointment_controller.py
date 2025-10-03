@@ -62,6 +62,7 @@ class AppointmentController(BaseCRUDController):
     def update_reviews(self):
         data = request.get_json()
         identity = get_jwt_identity()
+        print(data)
         
         user = User.query.filter_by(account_id=identity).first()
         if not user:
@@ -71,14 +72,14 @@ class AppointmentController(BaseCRUDController):
         if not appointment:
             return jsonify({"status": False, "message": "appointment not found"}), 404
 
-        if "branch_rate" in data:
-            appointment.branch_rating = data["branch_rate"]
+        if "branch_rating" in data:
+            appointment.branch_rating = data["branch_rating"]
 
-        if "service_rate" in data:
-            appointment.service_rating = data["service_rate"]
+        if "service_rating" in data:
+            appointment.service_rating = data["service_rating"]
 
-        if "aesthetician_rate" in data:
-            appointment.aesthetician_rating = data["aesthetician_rate"]
+        if "aesthetician_rating" in data:
+            appointment.aesthetician_rating = data["aesthetician_rating"]
 
         comment_fields = ["aesthetician_comment", "branch_comment", "service_comment"]
         for field in comment_fields:
@@ -87,13 +88,13 @@ class AppointmentController(BaseCRUDController):
 
         db.session.commit()
 
-        if "branch_rate" in data:
+        if "branch_rating" in data:
             self._update_average_rating(Branch, Branch.branch_id, appointment.branch_id, Appointment.branch_rating)
 
-        if "service_rate" in data:
+        if "service_rating" in data:
             self._update_average_rating(Service, Service.service_id, appointment.service_id, Appointment.service_rating)
 
-        if "aesthetician_rate" in data:
+        if "aesthetician_rating" in data:
             self._update_average_rating(Aesthetician, Aesthetician.aesthetician_id, appointment.aesthetician_id, Appointment.aesthetician_rating)
 
         return jsonify({"status": True, "message": "appointment updated successfully"}), 200
@@ -461,7 +462,7 @@ class AppointmentController(BaseCRUDController):
             ).scalar()
 
             db.session.query(model).filter(model_id_field == id_val).update(
-                {"avarage_rate": avg_rating or 0}
+                {"average_rate": avg_rating or 0}
             )
 
         db.session.commit()
