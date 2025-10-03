@@ -24,8 +24,8 @@ def get_appointments():
 # get your own appointment/history
 @appointment_bp.route("/history", methods=["GET"])
 @jwt_required()
-def get_appointment():
-    return appointment_controller.get_all()
+def get_history():
+    return appointment_controller.get_appointment_history()
 
 @appointment_bp.route("", methods=["PATCH"])
 @jwt_required()

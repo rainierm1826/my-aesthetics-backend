@@ -31,23 +31,29 @@ class AppointmentController(BaseCRUDController):
             joins=[(User, User.user_id==Appointment.user_id, "left"), (WalkIn, WalkIn.walk_in_id==Appointment.walk_in_id, "left"), (Branch, Branch.branch_id==Appointment.branch_id), (Aesthetician, Aesthetician.aesthetician_id==Appointment.aesthetician_id), (Service, Service.service_id==Appointment.service_id)]
         )
     
-    
-    # def _apply_filters(self, query):
-    #     query = super()._apply_filters(query)
+    def get_appointment_history(self):
+        original_apply_filters = self._apply_filters
+        def user_only_filter(query):
+            query = super(AppointmentController, self)._apply_filters(query)
+            identity = get_jwt_identity()
+            user = User.query.filter_by(account_id=identity).first()
+            if not user:
+                raise Exception("User not found")
+            return query.filter(Appointment.user_id == user.user_id)
+        try:
+            self._apply_filters = user_only_filter
+            return super().get_all()
+        finally:
+            self._apply_filters = original_apply_filters
 
-    #     identity = get_jwt_identity()
-    #     user = User.query.filter_by(account_id=identity).first()
-    #     if not user:
-    #         raise Exception("User not found")
-    #     return query.filter(Appointment.user_id == user.user_id)
     
     def _apply_sorting(self, query):
         status_order = case(
-            (Appointment.status == "waiting", 2),
             (Appointment.status == "on-process", 1),
-            (Appointment.status == "completed", 5),
-            (Appointment.status == "pending", 4),
+            (Appointment.status == "waiting", 2),
             (Appointment.status == "cancelled", 3),
+            (Appointment.status == "pending", 4),
+            (Appointment.status == "completed", 5),
             else_=5,
         )
         return query.order_by(asc(status_order), asc(Appointment.slot_number))
