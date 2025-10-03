@@ -11,7 +11,7 @@ from ..models.service_model import Service
 from ..models.voucher_model import Voucher
 from ..helper.functions import validate_required_fields
 from sqlalchemy import func, asc, case
-from datetime import date
+from datetime import date, datetime
 from xendit.apis import InvoiceApi
 from ..helper.constant import payment_methods, customer_notification_preference
 import xendit
@@ -43,11 +43,11 @@ class AppointmentController(BaseCRUDController):
     
     def _apply_sorting(self, query):
         status_order = case(
-            (Appointment.status == "waiting", 1),
-            (Appointment.status == "on-process", 2),
-            (Appointment.status == "completed", 3),
-            (Appointment.status == "pending", 5),
-            (Appointment.status == "cancelled", 4),
+            (Appointment.status == "waiting", 2),
+            (Appointment.status == "on-process", 1),
+            (Appointment.status == "completed", 5),
+            (Appointment.status == "pending", 4),
+            (Appointment.status == "cancelled", 3),
             else_=5,
         )
         return query.order_by(asc(status_order), asc(Appointment.slot_number))
@@ -55,19 +55,33 @@ class AppointmentController(BaseCRUDController):
     
     # used by owner or admin
     def _custom_update(self, data):
-    # Fetch the appointment being updated
         appointment = Appointment.query.get(data["appointment_id"])
-        
-        # Use aesthetician_id from data if available, otherwise from appointment
-        aesthetician_id = data.get("aesthetician_id") or appointment.aesthetician_id
-        aesthetician = Aesthetician.query.get(aesthetician_id)
+        if not appointment:
+            return jsonify({"status": False, "message": "appointment not found"}), 404
 
-        if data.get("status") == "completed":
-            data["status"] = "completed"
-            appointment.payment_status = "completed"
-            if aesthetician:
-                aesthetician.availability = "available"
+        # Save old values to know which branches need recalculation
+        old_branch_id = appointment.branch_id
+        old_status = appointment.status
 
+        # Apply provided updates to the appointment object (only status handled here explicitly)
+        new_status = data.get("status")
+        if new_status and new_status != old_status:
+            appointment.status = new_status
+            # mark when it entered the new status
+            appointment.status_updated_at = datetime.utcnow()
+
+            if new_status == "completed":
+                appointment.payment_status = "completed"
+                # update aesthetician availability if applicable
+                aesthetician_id = data.get("aesthetician_id") or appointment.aesthetician_id
+                aesthetician = Aesthetician.query.get(aesthetician_id)
+                if aesthetician:
+                    aesthetician.availability = "available"
+
+        # (Optional) apply other updates to appointment fields here if you accept them in `data`
+        # e.g.: appointment.some_field = data.get("some_field", appointment.some_field)
+
+        # ratings update logic (keep your existing behavior)
         if data.get("branch_rate"):
             self._update_average_rating(Branch, Branch.branch_id, appointment.branch_id, appointment.branch_rating)
 
@@ -76,9 +90,37 @@ class AppointmentController(BaseCRUDController):
 
         if data.get("aesthetician_rate"):
             self._update_average_rating(Aesthetician, Aesthetician.aesthetician_id, appointment.aesthetician_id, appointment.aesthetician_rating)
-        
-        
+
+        # Determine which branches need slot recalculation
+        branch_ids_to_recalc = {appointment.branch_id}
+        if "branch_id" in data and data["branch_id"] and data["branch_id"] != old_branch_id:
+            branch_ids_to_recalc.add(old_branch_id)
+            branch_ids_to_recalc.add(data["branch_id"])
+            # if branch is changing, actually update the appointment branch now
+            appointment.branch_id = data["branch_id"]
+
+        # Recompute slot numbers PER STATUS (so each status' numbering restarts at 1)
+        active_statuses = ["pending", "waiting", "on-process", "completed"]
+        for b_id in branch_ids_to_recalc:
+            for status in active_statuses:
+                appts = (
+                    Appointment.query
+                    .filter(
+                        Appointment.branch_id == b_id,
+                        func.date(Appointment.created_at) == date.today(),
+                        Appointment.status == status,
+                        Appointment.isDeleted == False
+                    )
+                    # order by the time they entered the status (fallback to created_at when null)
+                    .order_by(func.coalesce(Appointment.status_updated_at, Appointment.created_at).asc())
+                    .all()
+                )
+
+                for idx, appt in enumerate(appts, start=1):
+                    appt.slot_number = idx
+
         db.session.commit()
+        db.session.refresh(appointment)
         return appointment
 
     
@@ -111,6 +153,10 @@ class AppointmentController(BaseCRUDController):
             waiting_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "waiting", Appointment.isDeleted==False).first()
             if waiting_appointment:
                 return jsonify({"status": False, "message": "You are in waiting list"}), 400
+            
+            on_process_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "on-process", Appointment.isDeleted==False).first()
+            if on_process_appointment:
+                return jsonify({"status": False, "message": "You are in process list"}), 400  
             
             new_appointment = self._create_appointment(data, user_id=user.user_id)
             return new_appointment
@@ -275,7 +321,7 @@ class AppointmentController(BaseCRUDController):
             .filter(
                 Appointment.branch_id == appointment_data['branch_id'],
                 func.date(Appointment.created_at) == date.today(),
-                Appointment.status.in_(["waiting", "on-process"]),  # only these count
+                Appointment.status.in_(["waiting", "on-process", "pending"]),  # only these count
                 Appointment.isDeleted == False
             ).scalar()
 

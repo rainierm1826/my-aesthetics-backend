@@ -1,6 +1,6 @@
 from app import db
 from ..helper.functions import generate_id
-from datetime import date
+from datetime import date, datetime
 from ..helper.constant import payment_method_enum, down_payment_status_enum, payment_status_enum, appointment_status_enum, discount_type_enum
 from sqlalchemy import Float
 from .base_mixin import SoftDeleteMixin
@@ -66,6 +66,8 @@ class Appointment(db.Model, SoftDeleteMixin):
     status = db.Column(appointment_status_enum, nullable=False)
    
     isDeleted = db.Column(db.Boolean, default=False)
+    
+    status_updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=True)
     created_at = db.Column(db.Date, default=date.today())
     updated_at = db.Column(db.Date, default=date.today(), onupdate=date.today())
         
