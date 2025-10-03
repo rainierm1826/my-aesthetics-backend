@@ -59,6 +59,45 @@ class AppointmentController(BaseCRUDController):
         return query.order_by(asc(status_order), asc(Appointment.slot_number))
     
     
+    def update_reviews(self):
+        data = request.get_json()
+        identity = get_jwt_identity()
+        
+        user = User.query.filter_by(account_id=identity).first()
+        if not user:
+            return jsonify({"status": False, "message": "user not found"}), 404
+        
+        appointment = Appointment.query.filter_by(appointment_id=data.get("appointment_id")).first()
+        if not appointment:
+            return jsonify({"status": False, "message": "appointment not found"}), 404
+
+        if "branch_rate" in data:
+            appointment.branch_rating = data["branch_rate"]
+
+        if "service_rate" in data:
+            appointment.service_rating = data["service_rate"]
+
+        if "aesthetician_rate" in data:
+            appointment.aesthetician_rating = data["aesthetician_rate"]
+
+        comment_fields = ["aesthetician_comment", "branch_comment", "service_comment"]
+        for field in comment_fields:
+            if field in data:
+                setattr(appointment, field, data[field])
+
+        db.session.commit()
+
+        if "branch_rate" in data:
+            self._update_average_rating(Branch, Branch.branch_id, appointment.branch_id, Appointment.branch_rating)
+
+        if "service_rate" in data:
+            self._update_average_rating(Service, Service.service_id, appointment.service_id, Appointment.service_rating)
+
+        if "aesthetician_rate" in data:
+            self._update_average_rating(Aesthetician, Aesthetician.aesthetician_id, appointment.aesthetician_id, Appointment.aesthetician_rating)
+
+        return jsonify({"status": True, "message": "appointment updated successfully"}), 200
+
     # used by owner or admin
     def _custom_update(self, data):
         appointment = Appointment.query.get(data["appointment_id"])
@@ -84,28 +123,12 @@ class AppointmentController(BaseCRUDController):
                 if aesthetician:
                     aesthetician.availability = "available"
 
-        # (Optional) apply other updates to appointment fields here if you accept them in `data`
-        # e.g.: appointment.some_field = data.get("some_field", appointment.some_field)
-
-        # ratings update logic (keep your existing behavior)
-        if data.get("branch_rate"):
-            self._update_average_rating(Branch, Branch.branch_id, appointment.branch_id, appointment.branch_rating)
-
-        if data.get("service_rate"):
-            self._update_average_rating(Service, Service.service_id, appointment.service_id, appointment.service_rating)
-
-        if data.get("aesthetician_rate"):
-            self._update_average_rating(Aesthetician, Aesthetician.aesthetician_id, appointment.aesthetician_id, appointment.aesthetician_rating)
-
-        # Determine which branches need slot recalculation
         branch_ids_to_recalc = {appointment.branch_id}
         if "branch_id" in data and data["branch_id"] and data["branch_id"] != old_branch_id:
             branch_ids_to_recalc.add(old_branch_id)
             branch_ids_to_recalc.add(data["branch_id"])
-            # if branch is changing, actually update the appointment branch now
             appointment.branch_id = data["branch_id"]
 
-        # Recompute slot numbers PER STATUS (so each status' numbering restarts at 1)
         active_statuses = ["pending", "waiting", "on-process", "completed"]
         for b_id in branch_ids_to_recalc:
             for status in active_statuses:
@@ -117,7 +140,6 @@ class AppointmentController(BaseCRUDController):
                         Appointment.status == status,
                         Appointment.isDeleted == False
                     )
-                    # order by the time they entered the status (fallback to created_at when null)
                     .order_by(func.coalesce(Appointment.status_updated_at, Appointment.created_at).asc())
                     .all()
                 )
@@ -129,7 +151,6 @@ class AppointmentController(BaseCRUDController):
         db.session.refresh(appointment)
         return appointment
 
-    
     
     def _custom_create(self, data):
         # Walk-in logic

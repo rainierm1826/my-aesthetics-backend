@@ -49,18 +49,16 @@ class BranchController(BaseCRUDController):
     def _custom_update(self, data):
         
         instance = self.model.query.filter(getattr(self.model, self.id_field) == data[self.id_field]).first()
-        print(data)
         # Handle nested address updates
         if "address_id" in data:
             address = Address.query.filter_by(address_id=data["address_id"]).first()  # Added .first()
             
             if address:
                 address_fields = ["region", "province", "city", "barangay", "lot"]
-                print("address", address_fields)
                 for field in address_fields:  # Iterate through fields, not 
                     if field in data:  
                         if hasattr(address, field):
-                            setattr(address, field, data[field])  # 
+                            setattr(address, field, data[field])
         
         # Handle direct field updates (excluding nested fields)
         for field in self.updatable_fields:
