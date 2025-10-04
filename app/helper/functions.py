@@ -1,9 +1,9 @@
-import random
-import string
+import smtplib, ssl, string, random, os
 from datetime import datetime, timezone
-import smtplib, ssl
 from email.mime.text import MIMEText
-import os
+from flask import render_template
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 
 def convert_formdata_types(form_data):
@@ -49,21 +49,27 @@ def generate_id(prefix):
 def generate_otp():
     return ''.join(random.choices("0123456789", k=6))
 
-def send_email_otp(to_email, otp):
+
+def send_email_otp(to_email, otp, expiry=10):
     SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
     EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
-    EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")  
+    EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
     if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
-        print("Error: Email credentials not configured")
-        return False
+        return {"status": False, "message": "Email credentials not configured"}
 
-    subject = "Account Verification"
-    message = MIMEText(f"Your OTP code is: {otp}", "plain")
-    message["From"] = EMAIL_ADDRESS
+    # Render the template (just like for Flask pages)
+    html_content = render_template("otp_email.html", otp=otp, expiry=expiry)
+    text_content = f"Your OTP code is: {otp}\nThis code will expire in {expiry} minutes."
+
+    # Build the email
+    message = MIMEMultipart("alternative")
+    message["From"] = f"My App <{EMAIL_ADDRESS}>"
     message["To"] = to_email
-    message["Subject"] = subject
+    message["Subject"] = "🔑 Account Verification Code"
+    message.attach(MIMEText(text_content, "plain"))
+    message.attach(MIMEText(html_content, "html"))
 
     try:
         context = ssl.create_default_context()
@@ -71,10 +77,11 @@ def send_email_otp(to_email, otp):
             server.starttls(context=context)
             server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             server.send_message(message)
-        return True
+
+        return {"status": True, "message": f"OTP email sent to {to_email}"}
     except Exception as e:
-        print("Error sending email:", e)
-        return False
+        return {"status": False, "message": str(e)}
+
             
     
 

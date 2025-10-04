@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>OTP Verification</title>
+    </head>
+    <body
+        style="margin:0; padding:0; background-color:#f9f9f9; font-family: Arial, sans-serif; line-height:1.6;">
+
+        <table align="center" width="100%" border="0" cellspacing="0"
+            cellpadding="0"
+            style="max-width:600px; background:#ffffff; margin:20px auto; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+            <tr>
+                <td
+                    style="background-color:#BDA658; padding:20px; text-align:center; color:#fff;">
+                    <h1 style="margin:0; font-size:22px;">MY Aesthetics Brow
+                        Studio</h1>
+                </td>
+            </tr>
+
+            <tr>
+                <td style="padding:30px;">
+                    <h2 style="color:#333; margin-top:0;">Account
+                        Verification</h2>
+                    <p>Hi,</p>
+                    <p>Thank you for choosing <strong>MY Aesthetics Brow
+                            Studio</strong>. To complete your verification,
+                        please use the One-Time Password (OTP) below:</p>
+
+                    <div style="text-align:center; margin:30px 0;">
+                        <span
+                            style="display:inline-block; background:#f4f4f4; color:#333; font-size:28px; font-weight:bold; padding:15px 25px; border-radius:6px; letter-spacing:3px;">
+                            {{ otp }}
+                        </span>
+                    </div>
+
+                    <p>This code will expire in <strong>{{ expiry }}
+                            minutes</strong>. Please do not share this code with
+                        anyone for your security.</p>
+                    <p>If you didn’t request this, you can safely ignore this
+                        email.</p>
+
+                    <br>
+                    <p style="font-size:14px; color:#555;">Warm regards, <br>
+                        <strong>MY Aesthetics Brow Studio Team</strong></p>
+                </td>
+            </tr>
+
+            <tr>
+                <td
+                    style="background:#f4f4f4; text-align:center; padding:15px; font-size:12px; color:#888;">
+                    © {{ year }} MY Aesthetics Brow Studio. All rights reserved.
+                </td>
+            </tr>
+        </table>
+
+    </body>
+</html>
