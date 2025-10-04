@@ -7,8 +7,6 @@ from .base_mixin import SoftDeleteMixin
 
 class Auth(db.Model, SoftDeleteMixin):
     account_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
-    provider = db.Column(db.String(255))
-    provider_id = db.Column(db.String(255))
     email = db.Column(db.String(255), nullable=False)
     _password = db.Column("password", db.String(255))
     role_id = db.Column(db.String(255), db.ForeignKey("role.role_id"), nullable=False)
@@ -37,8 +35,6 @@ class Auth(db.Model, SoftDeleteMixin):
     def to_dict(self):
         return {
             "account_id": self.account_id,
-            "provider": self.provider,
-            "provider_id": self.provider_id,
             "email": self.email,
             "role": self.role.role_name,
             "is_verified": self.is_verified,
