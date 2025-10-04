@@ -62,7 +62,6 @@ class AppointmentController(BaseCRUDController):
     def update_reviews(self):
         data = request.get_json()
         identity = get_jwt_identity()
-        print(data)
         
         user = User.query.filter_by(account_id=identity).first()
         if not user:
@@ -451,6 +450,59 @@ class AppointmentController(BaseCRUDController):
             print(f"❌ Webhook error: {str(e)}")
             return jsonify({"status": False, "message": str(e)}), 500
 
+    def get_reviews(self, service_id=None, aesthetician_id=None, branch_id=None):
+        query = Appointment.query.with_entities(
+            Appointment.service_rating,
+            Appointment.branch_rating,
+            Appointment.aesthetician_rating,
+            Appointment.service_comment,
+            Appointment.branch_comment,
+            Appointment.aesthetician_comment,
+            Appointment.customer_name_snapshot,
+            Appointment.user_id,
+            Appointment.walk_in_id
+        )
+
+        if service_id:
+            query = query.filter_by(service_id=service_id)
+        elif aesthetician_id:
+            query = query.filter_by(aesthetician_id=aesthetician_id)
+        elif branch_id:
+            query = query.filter_by(branch_id=branch_id)
+
+        reviews = query.all()
+
+        if not reviews:
+            return {"status": False, "message": "No reviews found"}, 404
+
+        data = []
+        for r in reviews:
+            customer_image = None
+
+            # If appointment linked to registered user
+            if r.user_id:
+                user = User.query.get(r.user_id)
+                if user and getattr(user, "profile_image", None):
+                    customer_image = user.profile_image
+
+            # If appointment linked to walk-in
+            if not customer_image and r.walk_in_id:
+                walkin = WalkIn.query.get(r.walk_in_id)
+                if walkin and getattr(walkin, "profile_image", None):
+                    customer_image = walkin.profile_image
+
+            data.append({
+                "service_rating": r.service_rating,
+                "branch_rating": r.branch_rating,
+                "aesthetician_rating": r.aesthetician_rating,
+                "service_comment": r.service_comment,
+                "branch_comment": r.branch_comment,
+                "aesthetician_comment": r.aesthetician_comment,
+                "customer_name": r.customer_name_snapshot,
+                "customer_image": customer_image
+            })
+
+        return {"status": True, "review": data}
 
     def _update_average_rating(self, model, model_id_field, appointment_fk_field, rating_field):
         ids = db.session.query(model_id_field).distinct().all()

@@ -45,7 +45,17 @@ def update_review():
 def delete_appointment(id):
     return appointment_controller.delete(id)
 
+@appointment_bp.route("/reviews", methods=["GET"])
+def get_reviews():
+    service_id = request.args.get("service_id")
+    aesthetician_id = request.args.get("aesthetician_id")
+    branch_id = request.args.get("branch_id")
 
+    return appointment_controller.get_reviews(
+        service_id=service_id,
+        aesthetician_id=aesthetician_id,
+        branch_id=branch_id
+    )
 
 @webhook_bp.route("/webhook/xendit", methods=["POST"])
 def get_xendit_webhook():
