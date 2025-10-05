@@ -9,7 +9,7 @@ class Branch(db.Model, SoftDeleteMixin):
     address_id = db.Column(db.String(255), db.ForeignKey("address.address_id"))
     branch_name = db.Column(db.String(255), nullable=False)
     image = db.Column(db.Text, nullable=True)
-    average_rate = db.Column(db.Float, nullable=True)
+    average_rate = db.Column(db.Float, nullable=True, default=None)
     status = db.Column(branch_status_enum, nullable=False, default="active")
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))

@@ -15,7 +15,7 @@ class Aesthetician(db.Model, SoftDeleteMixin):
     image = db.Column(db.Text, nullable=True)
     sex = db.Column(sex_enum, nullable=False)
     experience = db.Column(experience_enum, nullable=False)
-    average_rate = db.Column(db.Float, nullable=True)
+    average_rate = db.Column(db.Float, nullable=True, default=None)
     availability = db.Column(availability_enum, nullable=False)
     isDeleted = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))

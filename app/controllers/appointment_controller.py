@@ -506,15 +506,16 @@ class AppointmentController(BaseCRUDController):
 
     def _update_average_rating(self, model, model_id_field, appointment_fk_field, rating_field):
         ids = db.session.query(model_id_field).distinct().all()
-        
+
         for (id_val,) in ids:
             avg_rating = db.session.query(func.avg(rating_field)).filter(
                 appointment_fk_field == id_val,
-                rating_field != None
+                rating_field.isnot(None)
             ).scalar()
 
             db.session.query(model).filter(model_id_field == id_val).update(
-                {"average_rate": avg_rating or 0}
+                {"average_rate": round(avg_rating, 2) if avg_rating else 0}
             )
 
         db.session.commit()
+
