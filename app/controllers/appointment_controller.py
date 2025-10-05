@@ -88,13 +88,32 @@ class AppointmentController(BaseCRUDController):
         db.session.commit()
 
         if "branch_rating" in data:
-            self._update_average_rating(Branch, Branch.branch_id, appointment.branch_id, Appointment.branch_rating)
+            self._update_average_rating(
+                Appointment.branch_rating,
+                Appointment.branch_id,
+                appointment.branch_id,
+                Branch,
+                Branch.branch_id
+            )
 
         if "service_rating" in data:
-            self._update_average_rating(Service, Service.service_id, appointment.service_id, Appointment.service_rating)
+            self._update_average_rating(
+                Appointment.service_rating,
+                Appointment.service_id,
+                appointment.service_id,
+                Service,
+                Service.service_id
+            )
 
         if "aesthetician_rating" in data:
-            self._update_average_rating(Aesthetician, Aesthetician.aesthetician_id, appointment.aesthetician_id, Appointment.aesthetician_rating)
+            self._update_average_rating(
+                Appointment.aesthetician_rating,
+                Appointment.aesthetician_id,
+                appointment.aesthetician_id,
+                Aesthetician,
+                Aesthetician.aesthetician_id
+            )
+
 
         return jsonify({"status": True, "message": "appointment updated successfully"}), 200
 
@@ -460,7 +479,6 @@ class AppointmentController(BaseCRUDController):
             Appointment.aesthetician_comment,
             Appointment.customer_name_snapshot,
             Appointment.user_id,
-            Appointment.walk_in_id
         )
 
         if service_id:
@@ -490,15 +508,10 @@ class AppointmentController(BaseCRUDController):
 
             customer_image = None
             # Registered user
-            if r.user_id:
-                user = User.query.get(r.user_id)
-                if user and getattr(user, "profile_image", None):
-                    customer_image = user.image
-            # Walk-in
-            if not customer_image and r.walk_in_id:
-                walkin = WalkIn.query.get(r.walk_in_id)
-                if walkin and getattr(walkin, "profile_image", None):
-                    customer_image = walkin.image
+            user = User.query.get(r.user_id)
+            if user and getattr(user, "image", None):
+                customer_image = user.image
+
 
             data.append({
                 "service_rating": r.service_rating,
@@ -518,18 +531,18 @@ class AppointmentController(BaseCRUDController):
 
 
 
-    def _update_average_rating(self, model, model_id_field, appointment_fk_field, rating_field):
-        ids = db.session.query(model_id_field).distinct().all()
+    def _update_average_rating(self, appointment_model_field, appointment_fk_field, fk_value, target_model, target_id_field):
+        # Compute the average rating for the given foreign key (only non-null ratings)
+        avg_rating = db.session.query(func.avg(appointment_model_field)).filter(
+            appointment_fk_field == fk_value,
+            appointment_model_field.isnot(None)
+        ).scalar()
 
-        for (id_val,) in ids:
-            avg_rating = db.session.query(func.avg(rating_field)).filter(
-                appointment_fk_field == id_val,
-                rating_field.isnot(None)
-            ).scalar()
-
-            db.session.query(model).filter(model_id_field == id_val).update(
-                {"average_rate": round(avg_rating, 2) if avg_rating else 0}
-            )
+        # Update the corresponding model's average_rate
+        db.session.query(target_model).filter(target_id_field == fk_value).update(
+            {"average_rate": round(avg_rating, 2) if avg_rating else 0}
+        )
 
         db.session.commit()
+
 
