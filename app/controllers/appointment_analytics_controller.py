@@ -152,28 +152,58 @@ class AppointmentAnalyticsController:
         return [dict(row._mapping) for row in query.all()]
     
     def appointments_by_service(self):
-        query = db.session.query(Appointment.service_name_snapshot.label("service"), func.count(Appointment.appointment_id).label("count")).group_by( Appointment.service_name_snapshot)
+        query = (
+            db.session.query(
+                Service.service_name.label("service"),  # live service name
+                func.count(Appointment.appointment_id).label("count")
+            )
+            .join(Service, Appointment.service_id == Service.service_id)
+            .group_by(Service.service_name)
+        )
+
         query = FilterAnalyticsController.apply_is_completed(query)
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.limit(10)
+
         return [dict(row._mapping) for row in query.all()]
+
     
     def appointments_by_branch(self):
-        query = db.session.query(Appointment.branch_name_snapshot.label("branch"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.branch_name_snapshot)
+        query = (
+            db.session.query(
+                Branch.branch_name.label("branch"),  # live branch name
+                func.count(Appointment.appointment_id).label("count")
+            )
+            .join(Branch, Appointment.branch_id == Branch.branch_id)
+            .group_by(Branch.branch_name)
+        )
+
         query = FilterAnalyticsController.apply_is_completed(query)
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.limit(10)
+
         return [dict(row._mapping) for row in query.all()]
+
     
     def appointments_by_aesthetician(self):
-        query = db.session.query(Appointment.aesthetician_name_snapshot.label("aesthetician"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.aesthetician_name_snapshot)
+        query = (
+        db.session.query(
+            func.concat(Aesthetician.first_name, " ", Aesthetician.middle_initial, " ", Aesthetician.last_name).label("aesthetician"),
+            func.count(Appointment.appointment_id).label("count")
+        )
+        .join(Aesthetician, Appointment.aesthetician_id == Aesthetician.aesthetician_id)
+        .group_by(Aesthetician.first_name, Aesthetician.last_name, Aesthetician.middle_initial)
+        )
+
         query = FilterAnalyticsController.apply_is_completed(query)
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.limit(10)
+
         return [dict(row._mapping) for row in query.all()]
+
     
     
     def appointments_status(self):

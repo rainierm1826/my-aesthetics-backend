@@ -2,6 +2,9 @@ from ..controllers.filter_analytics_controller import FilterAnalyticsController
 from ..extension import db
 from sqlalchemy import func, extract, case
 from ..models.appointment_model import Appointment
+from ..models.aesthetician_model import Aesthetician
+from ..models.service_model import Service
+from ..models.branch_model import Branch
 from flask import request
 from ..helper.linear_regression_model import linear_regression_model
 from sklearn.linear_model import LinearRegression
@@ -149,29 +152,57 @@ class SalesAnalyticsController:
 
     
     def revenue_by_aesthetician(self):
-        query = db.session.query(Appointment.aesthetician_name_snapshot.label("aesthetician"), func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.aesthetician_id, Appointment.aesthetician_name_snapshot)
+        query = (
+            db.session.query(
+                func.concat(Aesthetician.first_name, " ", Aesthetician.last_name).label("aesthetician"),  # live full name
+                func.sum(Appointment.to_pay).label("revenue")
+            )
+            .join(Aesthetician, Appointment.aesthetician_id == Aesthetician.aesthetician_id)
+            .group_by(Aesthetician.first_name, Aesthetician.last_name, Aesthetician.aesthetician_id)
+        )
+
         query = FilterAnalyticsController.apply_is_completed(query)
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.limit(10)
+
         return [dict(row._mapping) for row in query.all()]
+
     
     def revenue_by_service(self):
-        query = db.session.query(Appointment.service_name_snapshot.label("service"), func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.service_id, Appointment.service_name_snapshot)
+        query = (
+            db.session.query(
+                Service.service_name.label("service"),  # live service name
+                func.sum(Appointment.to_pay).label("revenue")
+            )
+            .join(Service, Appointment.service_id == Service.service_id)
+            .group_by(Service.service_name, Service.service_id)
+        )
+
         query = FilterAnalyticsController.apply_is_completed(query)
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.limit(10)
+
         return [dict(row._mapping) for row in query.all()]
-    
+
     def revenue_by_branch(self):
-        query = db.session.query(Appointment.branch_name_snapshot.label("branch"), func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.branch_id, Appointment.branch_name_snapshot)
+        query = (
+            db.session.query(
+                Branch.branch_name.label("branch"),  # live branch name
+                func.sum(Appointment.to_pay).label("revenue")
+            )
+            .join(Branch, Appointment.branch_id == Branch.branch_id)
+            .group_by(Branch.branch_name, Branch.branch_id)
+        )
+
         query = FilterAnalyticsController.apply_is_completed(query)
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.limit(10)
+
         return [dict(row._mapping) for row in query.all()]
-    
+
     def revenue_by_category(self):
         query = db.session.query(Appointment.category_snapshot, func.sum(Appointment.to_pay).label("revenue")).group_by(Appointment.category_snapshot)
         query = FilterAnalyticsController.apply_is_completed(query)

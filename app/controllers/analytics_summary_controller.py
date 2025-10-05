@@ -137,45 +137,47 @@ class AnalyticsSummaryController:
 
 
     def branch_completion_rate(self):
+        # Total appointments per branch (excluding deleted)
         total_query = (
             db.session.query(
                 Appointment.branch_id,
                 func.count(Appointment.appointment_id).label("total")
             )
+            .filter(Appointment.isDeleted == False)
             .group_by(Appointment.branch_id)
             .subquery()
         )
-        
 
+        # Completed appointments per branch (excluding deleted)
         completed_query = (
             db.session.query(
                 Appointment.branch_id,
                 func.count(Appointment.appointment_id).label("completed")
             )
             .filter(Appointment.status == "completed")
-            .filter(Appointment.isDeleted == False) 
+            .filter(Appointment.isDeleted == False)
             .group_by(Appointment.branch_id)
             .subquery()
         )
 
+        # Join both and calculate completion rate
         result = (
             db.session.query(
-                Branch.branch_name.label("branch_name"),
-                (func.coalesce(completed_query.c.completed, 0) / total_query.c.total * 100).label("completion_rate")
+                Branch.branch_name.label("branch_name"),  # live branch name
+                (
+                    func.coalesce(completed_query.c.completed, 0) 
+                    / total_query.c.total * 100
+                ).label("completion_rate")
             )
-            .join(total_query, Branch.branch_id == total_query.c.branch_id)
+            .join(total_query, Branch.branch_id == total_query.c.branch_id)   # inner join ensures only branches with appointments appear
             .outerjoin(completed_query, completed_query.c.branch_id == total_query.c.branch_id)
             .all()
         )
 
+        # Format result into dictionary
         return {row.branch_name: float(round(row.completion_rate, 2)) for row in result}
 
-    def appointments_by_aesthetician(self):
-        query = db.session.query(Appointment.aesthetician_name_snapshot.label("aesthetician"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.aesthetician_name_snapshot)
-        query = FilterAnalyticsController.apply_filters_from_request(query)
-        query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
-        query = query.limit(10)
-        return [dict(row._mapping) for row in query.all()]
+
 
     def aesthetician_experience(self):
         query = (
