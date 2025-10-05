@@ -493,12 +493,12 @@ class AppointmentController(BaseCRUDController):
             if r.user_id:
                 user = User.query.get(r.user_id)
                 if user and getattr(user, "profile_image", None):
-                    customer_image = user.profile_image
+                    customer_image = user.image
             # Walk-in
             if not customer_image and r.walk_in_id:
                 walkin = WalkIn.query.get(r.walk_in_id)
                 if walkin and getattr(walkin, "profile_image", None):
-                    customer_image = walkin.profile_image
+                    customer_image = walkin.image
 
             data.append({
                 "service_rating": r.service_rating,
