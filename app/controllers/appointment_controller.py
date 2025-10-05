@@ -477,15 +477,24 @@ class AppointmentController(BaseCRUDController):
 
         data = []
         for r in reviews:
-            customer_image = None
+            # Skip appointments where all ratings and comments are None/empty
+            if (
+                r.service_rating is None and
+                r.branch_rating is None and
+                r.aesthetician_rating is None and
+                not r.service_comment and
+                not r.branch_comment and
+                not r.aesthetician_comment
+            ):
+                continue
 
-            # If appointment linked to registered user
+            customer_image = None
+            # Registered user
             if r.user_id:
                 user = User.query.get(r.user_id)
                 if user and getattr(user, "profile_image", None):
                     customer_image = user.profile_image
-
-            # If appointment linked to walk-in
+            # Walk-in
             if not customer_image and r.walk_in_id:
                 walkin = WalkIn.query.get(r.walk_in_id)
                 if walkin and getattr(walkin, "profile_image", None):
@@ -502,7 +511,12 @@ class AppointmentController(BaseCRUDController):
                 "customer_image": customer_image
             })
 
+        if not data:
+            return {"status": False, "message": "No reviews found"}, 404
+
         return {"status": True, "review": data}
+
+
 
     def _update_average_rating(self, model, model_id_field, appointment_fk_field, rating_field):
         ids = db.session.query(model_id_field).distinct().all()
