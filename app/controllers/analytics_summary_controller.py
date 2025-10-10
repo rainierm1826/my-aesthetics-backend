@@ -28,18 +28,21 @@ class AnalyticsSummaryController:
     def avarage_service_rating(self):
         query = db.session.query(func.avg(Service.average_rate))
         query = FilterAnalyticsController.apply_not_deleted(query, Service)
-        return round(query.scalar(), 2) or 0
+        result = query.scalar()
+        return round(result, 2) if result is not None else 0
     
     def avarage_branch_rating(self):
         query = db.session.query(func.avg(Branch.average_rate))
         query = FilterAnalyticsController.apply_not_deleted(query, Branch)
-        return round(query.scalar(), 2) or 0
+        result = query.scalar()
+        return round(result, 2) if result is not None else 0
     
     
     def avarage_aesthetician_rating(self):
         query = db.session.query(func.avg(Aesthetician.average_rate))
         query = FilterAnalyticsController.apply_not_deleted(query, Aesthetician)
-        return round(query.scalar(), 2) or 0
+        result = query.scalar()
+        return round(result, 2) if result is not None else 0
     
 
     def avarage_overall_rating(self):
@@ -57,12 +60,10 @@ class AnalyticsSummaryController:
 
     
     def total_services(self):
-        params = FilterAnalyticsController.get_filter_params()
         query = db.session.query(func.count(Service.service_id))
-        query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
-        query = FilterAnalyticsController.apply_filter_date(query, params["month"], params["year"])
         query = FilterAnalyticsController.apply_not_deleted(query, Service)
-        return query.scalar() or 0
+        result = query.scalar()
+        return round(result, 2) if result is not None else 0
     
     
     def total_aestheticians(self):
@@ -113,7 +114,7 @@ class AnalyticsSummaryController:
 
         if total_appointments == 0:
             return 0
-
+        
         return round((completed_appointments / total_appointments) * 100, 2)
 
 
@@ -197,7 +198,8 @@ class AnalyticsSummaryController:
         query = FilterAnalyticsController.apply_not_deleted(query, Service)
         query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
         query = FilterAnalyticsController.apply_filter_date(query, params["month"], params["year"])
-        return query.scalar() or 0
+        result = query.scalar()
+        return round(result, 2) if result is not None else 0
     
     def service_per_category(self):
         params = FilterAnalyticsController.get_filter_params()
@@ -229,10 +231,3 @@ class AnalyticsSummaryController:
         )
 
         return [dict(row._mapping) for row in query.all()]
-
-
-
-        
-    
-
-            
