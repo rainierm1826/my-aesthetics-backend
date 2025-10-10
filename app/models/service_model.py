@@ -17,6 +17,7 @@ class Service(db.Model, SoftDeleteMixin):
     discount = db.Column(Float, nullable=True)
     discounted_price = db.Column(Float, nullable=False)
     image = db.Column(db.Text, nullable=True)
+    duration = db.Column(db.Integer, nullable=True)
     average_rate = db.Column(db.Float, nullable=True, default=None)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
@@ -43,6 +44,7 @@ class Service(db.Model, SoftDeleteMixin):
             "description": self.description,
             "image": self.image,
             "avarage_rate": self.average_rate,
+            "duration": self.duration,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
 
