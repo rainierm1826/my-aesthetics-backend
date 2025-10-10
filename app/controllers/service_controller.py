@@ -30,7 +30,8 @@ class ServiceController(BaseCRUDController):
                     Service.price,
                     Service.discounted_price,
                     Service.discount_type,
-                    Service.discount
+                    Service.discount,
+                    Service.duration
                 ).filter_by(isDeleted=False)
             )
             if branch and branch.lower() != "all":
@@ -47,7 +48,8 @@ class ServiceController(BaseCRUDController):
                     "price":a.price,
                     "discounte_type":a.discount_type,
                     "discount":a.discount,
-                    "discounted_price":a.discounted_price
+                    "discounted_price":a.discounted_price,
+                    "duration": a.duration
                 }
                 for a in result
             ]
