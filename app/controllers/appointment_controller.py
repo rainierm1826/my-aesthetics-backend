@@ -196,6 +196,7 @@ class AppointmentController(BaseCRUDController):
         return new_walk_in
 
     def _create_appointment(self, data, walk_in_id=None, user_id=None):
+        print(data)
         is_walk_in = data.pop("is_walk_in")
         data["walk_in_id"] = walk_in_id
         data["user_id"] = user_id
