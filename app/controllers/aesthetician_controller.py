@@ -70,7 +70,7 @@ class AestheticianController(BaseCRUDController):
             date_str = request.args.get("date")  
 
             if not all([aesthetician_id, service_id, date_str]):
-                return jsonify({"status": False, "message": "Missing body"})
+                return jsonify({"status": False, "message": "Missing params"})
 
             date = datetime.strptime(date_str, "%Y-%m-%d").date()
 
@@ -85,33 +85,38 @@ class AestheticianController(BaseCRUDController):
             shift_start = datetime.combine(date, time(10, 0))
             shift_end = datetime.combine(date, time(17, 0))
 
-            # Fetch appointments for that aesthetician (ignore the date part of start_time)
+            # Fetch appointments for that aesthetician on the same date
             appointments = Appointment.query.filter(
                 Appointment.aesthetician_id == aesthetician_id,
                 Appointment.isDeleted == False,
-                Appointment.status.in_(["waiting", "on-process", "pending"])
+                Appointment.status.in_(["waiting", "on-process", "pending"]),
+                func.date(Appointment.created_at) == date
             ).all()
 
             # Build available slots
             slots = []
             current = shift_start
+            SLOT_INTERVAL = 30  # Check every 30 minutes
 
             while current + timedelta(minutes=duration) <= shift_end:
-                current_time = current.time()
+                new_appointment_end = current + timedelta(minutes=duration)
                 
-                overlap = any(
-                    (
-                        # Extract time from the timestamp for comparison
-                        a.start_time.time() < (current + timedelta(minutes=duration)).time()
-                        and (datetime.combine(date, a.start_time.time()) + timedelta(minutes=a.duration)).time() > current_time
-                    )
-                    for a in appointments
-                )
+                overlap = False
+                for a in appointments:
+                    # Extract just the time part and combine with the target date
+                    appointment_time = a.start_time.time() if isinstance(a.start_time, datetime) else a.start_time
+                    existing_start = datetime.combine(date, appointment_time)
+                    existing_end = existing_start + timedelta(minutes=a.duration)
+                    
+                    # Check overlap
+                    if current < existing_end and existing_start < new_appointment_end:
+                        overlap = True
+                        break
 
                 if not overlap:
                     slots.append(current.strftime("%I:%M %p"))
 
-                current += timedelta(minutes=duration)
+                current += timedelta(minutes=SLOT_INTERVAL)  # Always increment by 30 minutes
 
             return jsonify({
                 "status": True,
@@ -122,4 +127,4 @@ class AestheticianController(BaseCRUDController):
             })
 
         except Exception as e:
-            return jsonify({"status": False, "message": "Internal error", "error": str(e)})
+            return jsonify({"status": False, "message": str(e)})

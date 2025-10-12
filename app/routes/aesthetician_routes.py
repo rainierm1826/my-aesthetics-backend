@@ -38,7 +38,7 @@ def update_aesthetician():
 def get_aesthetician_name():
     return aesthetician_controller.get_aesthetician_name()
 
-@aesthetician_bp.route(rule="/slot", methods=["POST"])
+@aesthetician_bp.route(rule="/slot", methods=["GET"])
 @jwt_required()
 def get_aesthetician_slot():
     return aesthetician_controller.get_available_slots()
