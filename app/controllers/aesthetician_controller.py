@@ -1,8 +1,12 @@
 from ..controllers.base_crud_controller import BaseCRUDController
 from ..models.aesthetician_model import Aesthetician
 from ..models.branch_model import Branch
+from ..models.service_model import Service
+from ..models.appointment_model import Appointment
 from ..extension import db
 from flask import jsonify, request
+from datetime import datetime, time, timedelta
+from sqlalchemy import func
 
 class AestheticianController(BaseCRUDController):
     def __init__(self):
@@ -58,3 +62,64 @@ class AestheticianController(BaseCRUDController):
         db.session.add(new_aesthetician)
         return new_aesthetician
     
+    
+    def get_available_slots(self):
+        try:
+            aesthetician_id = request.args.get("aesthetician_id")
+            service_id = request.args.get("service_id")
+            date_str = request.args.get("date")  
+
+            if not all([aesthetician_id, service_id, date_str]):
+                return jsonify({"status": False, "message": "Missing body"})
+
+            date = datetime.strptime(date_str, "%Y-%m-%d").date()
+
+            # Fetch service duration (in minutes)
+            service = Service.query.get(service_id)
+            if not service:
+                return jsonify({"status": False, "message": "Service not found"})
+
+            duration = service.duration  # minutes
+
+            # Working hours
+            shift_start = datetime.combine(date, time(10, 0))
+            shift_end = datetime.combine(date, time(17, 0))
+
+            # Fetch appointments for that aesthetician (ignore the date part of start_time)
+            appointments = Appointment.query.filter(
+                Appointment.aesthetician_id == aesthetician_id,
+                Appointment.isDeleted == False,
+                Appointment.status.in_(["waiting", "on-process", "pending"])
+            ).all()
+
+            # Build available slots
+            slots = []
+            current = shift_start
+
+            while current + timedelta(minutes=duration) <= shift_end:
+                current_time = current.time()
+                
+                overlap = any(
+                    (
+                        # Extract time from the timestamp for comparison
+                        a.start_time.time() < (current + timedelta(minutes=duration)).time()
+                        and (datetime.combine(date, a.start_time.time()) + timedelta(minutes=a.duration)).time() > current_time
+                    )
+                    for a in appointments
+                )
+
+                if not overlap:
+                    slots.append(current.strftime("%I:%M %p"))
+
+                current += timedelta(minutes=duration)
+
+            return jsonify({
+                "status": True,
+                "aesthetician_id": aesthetician_id,
+                "service_id": service_id,
+                "date": date_str,
+                "available_slots": slots
+            })
+
+        except Exception as e:
+            return jsonify({"status": False, "message": "Internal error", "error": str(e)})

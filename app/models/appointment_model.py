@@ -16,7 +16,7 @@ class Appointment(db.Model, SoftDeleteMixin):
     aesthetician_id = db.Column(db.String(255), db.ForeignKey("aesthetician.aesthetician_id"), nullable=False)
     service_id = db.Column(db.String(255), db.ForeignKey("service.service_id"), nullable=False)
     
-    slot_number = db.Column(db.Integer, nullable=False)
+    # slot_number = db.Column(db.Integer, nullable=False)
     
     # ratings
     service_rating = db.Column(db.Float, nullable=True)
@@ -63,6 +63,9 @@ class Appointment(db.Model, SoftDeleteMixin):
     down_payment_paid_at = db.Column(db.DateTime, nullable=True)
 
 
+    # time
+    start_time = db.Column(db.DateTime, nullable=False)
+    duration = db.Column(db.Integer, nullable=False) 
     status = db.Column(appointment_status_enum, nullable=False)
    
     isDeleted = db.Column(db.Boolean, default=False)
@@ -70,7 +73,7 @@ class Appointment(db.Model, SoftDeleteMixin):
     status_updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=True)
     created_at = db.Column(db.Date, default=date.today())
     updated_at = db.Column(db.Date, default=date.today(), onupdate=date.today())
-        
+    
     
     # relationships
     user = db.relationship("User", backref="appointments")
@@ -100,7 +103,8 @@ class Appointment(db.Model, SoftDeleteMixin):
             "voucher_discount_type_snapshot": self.voucher_discount_type_snapshot,
             "voucher_discount_amount_snapshot": self.voucher_discount_amount_snapshot,
             "status": self.status,
-            "slot_number": self.slot_number,
+            "start_time": self.start_time,
+            "duration": self.duration,
             "branch_rating": self.branch_rating,
             "service_rating": self.service_rating,
             "aesthetician_rating": self.aesthetician_rating,

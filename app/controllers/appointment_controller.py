@@ -10,8 +10,8 @@ from ..models.aesthetician_model import Aesthetician
 from ..models.service_model import Service
 from ..models.voucher_model import Voucher
 from ..helper.functions import validate_required_fields
-from sqlalchemy import func, asc, case
-from datetime import date, datetime
+from sqlalchemy import func, asc, Integer, cast
+from datetime import date, datetime, timedelta
 from xendit.apis import InvoiceApi
 from ..helper.constant import payment_methods, customer_notification_preference
 import xendit
@@ -25,7 +25,7 @@ class AppointmentController(BaseCRUDController):
             model=Appointment,
             id_field="appointment_id",
             searchable_fields=["appointment_id", "first_name", "last_name"],
-            sortable_fields={"slot":Appointment.slot_number},
+            sortable_fields={"start-time":Appointment.start_time},
             filterable_fields={"status": "status", "branch": (Branch, "branch_id"), "aesthetician": (Aesthetician, "aesthetician_name"), "service": (Service, "service_name"), "date":"created_at"},
             updatable_fields=["status", "aesthetician_rating", "service_rating", "branch_rating", "service_comment", "branch_comment", "aesthetician_comment", "payment_status"],
             joins=[(User, User.user_id==Appointment.user_id, "left"), (WalkIn, WalkIn.walk_in_id==Appointment.walk_in_id, "left"), (Branch, Branch.branch_id==Appointment.branch_id), (Aesthetician, Aesthetician.aesthetician_id==Appointment.aesthetician_id), (Service, Service.service_id==Appointment.service_id)]
@@ -48,15 +48,7 @@ class AppointmentController(BaseCRUDController):
 
     
     def _apply_sorting(self, query):
-        status_order = case(
-            (Appointment.status == "on-process", 1),
-            (Appointment.status == "waiting", 2),
-            (Appointment.status == "cancelled", 3),
-            (Appointment.status == "pending", 4),
-            (Appointment.status == "completed", 5),
-            else_=5,
-        )
-        return query.order_by(asc(status_order), asc(Appointment.slot_number))
+        return query.order_by(asc(Appointment.start_time))
     
     
     def update_reviews(self):
@@ -148,24 +140,6 @@ class AppointmentController(BaseCRUDController):
             branch_ids_to_recalc.add(data["branch_id"])
             appointment.branch_id = data["branch_id"]
 
-        active_statuses = ["pending", "waiting", "on-process", "completed"]
-        for b_id in branch_ids_to_recalc:
-            for status in active_statuses:
-                appts = (
-                    Appointment.query
-                    .filter(
-                        Appointment.branch_id == b_id,
-                        func.date(Appointment.created_at) == date.today(),
-                        Appointment.status == status,
-                        Appointment.isDeleted == False
-                    )
-                    .order_by(func.coalesce(Appointment.status_updated_at, Appointment.created_at).asc())
-                    .all()
-                )
-
-                for idx, appt in enumerate(appts, start=1):
-                    appt.slot_number = idx
-
         db.session.commit()
         db.session.refresh(appointment)
         return appointment
@@ -248,6 +222,29 @@ class AppointmentController(BaseCRUDController):
         if service.branch and service.branch.branch_id is not None and service.branch.branch_id != appointment_data['branch_id']:
             return jsonify({"status": False, "message": "service is not available in this branch"}), 503
         
+        
+        start_time = datetime.strptime(appointment_data["start_time"], "%H:%M")
+        duration = service.duration or 60  # fallback to 60 mins if missing
+        
+        overlapping = Appointment.query.filter(
+        Appointment.aesthetician_id == appointment_data["aesthetician_id"],
+        Appointment.status.in_(["waiting", "on-process", "pending"]),
+        Appointment.isDeleted == False
+        ).all()
+
+        # Check overlaps in Python
+        for apt in overlapping:
+            apt_start = apt.start_time
+            apt_end = (datetime.combine(datetime.today(), apt_start) + timedelta(minutes=apt.duration)).time()
+            new_start = start_time.time()
+            new_end = (start_time + timedelta(minutes=duration)).time()
+            
+            if apt_start < new_end and apt_end > new_start:
+                return jsonify({
+                    "status": False,
+                    "message": "Aesthetician already has an appointment at that time"
+                }), 409
+
         to_pay = service.discounted_price or service.price
         
         # Add pro experience fee
@@ -350,30 +347,14 @@ class AppointmentController(BaseCRUDController):
         appointment_data.update({
             "down_payment_method": down_payment_method,
             "status": status,
+            "duration": service.duration,
+            "start_time": datetime.strptime(appointment_data["start_time"], "%H:%M"),
             "payment_status": payment_status,
             "to_pay": to_pay,
             "down_payment": down_payment,
             "xendit_invoice_id": xendit_invoice_id,
             "xendit_external_id": f"appointment-{int(time.time())}-{user_id}" if not is_walk_in else None
         })
-
-        if is_walk_in:
-            aesthetician.availability = "working"
-        
-
-        # Slot number (reset daily)
-        # Get the current max slot for today ignoring cancelled appointments
-        max_slot = db.session.query(func.max(Appointment.slot_number)) \
-            .filter(
-                Appointment.branch_id == appointment_data['branch_id'],
-                func.date(Appointment.created_at) == date.today(),
-                Appointment.status.in_(["waiting", "on-process", "pending"]),  # only these count
-                Appointment.isDeleted == False
-            ).scalar()
-
-        # Assign next slot
-        appointment_data['slot_number'] = (max_slot or 0) + 1
-
         
         # Snapshots
         if is_walk_in:
