@@ -6,7 +6,7 @@ class OTP(db.Model):
     otp_id = db.Column(db.String(), primary_key=True, default=lambda:generate_id("OTP"))
     email = db.Column(db.String(), nullable=False)
     otp_code = db.Column(db.String(6), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     expires_at = db.Column(db.DateTime(timezone=True), nullable=False)
     is_used = db.Column(db.Boolean, default=False)
     

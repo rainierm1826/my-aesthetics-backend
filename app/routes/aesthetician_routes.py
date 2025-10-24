@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint
 from ..controllers.aesthetician_controller import AestheticianController
 from flask_jwt_extended import jwt_required
 from ..helper.decorators import access_control

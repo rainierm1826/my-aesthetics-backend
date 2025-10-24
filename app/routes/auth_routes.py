@@ -34,11 +34,17 @@ def signin():
 def signout():
     return auth_controller.sign_out()
 
+@auth_bp.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    return auth_controller.forgot_password()
 
-# @auth_bp.route("/update-password", methods=["PATCH"])
-# @jwt_required()
-# def update_password():
-#     return auth_controller.update()
+@auth_bp.route("/verify-otp-forgot-password", methods=["POST"])
+def verify_otp_forgot_password():
+    return auth_controller.verify_otp_forgot_password()
+
+@auth_bp.route("/reset-password", methods=["POST"])
+def reset_password():
+    return auth_controller.reset_password()
 
 @auth_bp.route("/delete-admin/<string:id>", methods=["PATCH"])
 # @jwt_required()

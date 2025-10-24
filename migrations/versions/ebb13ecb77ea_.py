@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: d3d1f92adbef
+Revision ID: ebb13ecb77ea
 Revises: 
-Create Date: 2025-10-04 21:00:36.819025
+Create Date: 2025-10-23 18:16:36.035777
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'd3d1f92adbef'
+revision = 'ebb13ecb77ea'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -152,6 +152,7 @@ def upgrade():
     sa.Column('discount', sa.Float(), nullable=True),
     sa.Column('discounted_price', sa.Float(), nullable=False),
     sa.Column('image', sa.Text(), nullable=True),
+    sa.Column('duration', sa.Integer(), nullable=True),
     sa.Column('average_rate', sa.Float(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
@@ -188,7 +189,6 @@ def upgrade():
     sa.Column('branch_id', sa.String(length=255), nullable=False),
     sa.Column('aesthetician_id', sa.String(length=255), nullable=False),
     sa.Column('service_id', sa.String(length=255), nullable=False),
-    sa.Column('slot_number', sa.Integer(), nullable=False),
     sa.Column('service_rating', sa.Float(), nullable=True),
     sa.Column('branch_rating', sa.Float(), nullable=True),
     sa.Column('aesthetician_rating', sa.Float(), nullable=True),
@@ -213,13 +213,15 @@ def upgrade():
     sa.Column('voucher_code', sa.String(length=255), nullable=True),
     sa.Column('down_payment_method', sa.Enum('cash', 'e-wallet', 'bank-transfer', 'credit-card', 'debit-card', 'xendit', name='payment_method_enum'), nullable=True),
     sa.Column('down_payment', sa.Float(), nullable=False),
-    sa.Column('down_payment_status', sa.Enum('completed', 'pending', 'cancelled', name='payment_status_enum'), nullable=True),
+    sa.Column('down_payment_status', sa.Enum('completed', 'pending', 'cancelled', 'partial', name='payment_status_enum'), nullable=True),
     sa.Column('final_payment_method', sa.Enum('cash', 'e-wallet', 'bank-transfer', 'credit-card', 'debit-card', 'xendit', name='payment_method_enum'), nullable=False),
     sa.Column('to_pay', sa.Float(), nullable=False),
     sa.Column('payment_status', sa.Enum('completed', 'partial', 'pending', name='payment_status_enum'), nullable=False),
     sa.Column('xendit_invoice_id', sa.String(length=255), nullable=True),
     sa.Column('xendit_external_id', sa.String(length=255), nullable=True),
     sa.Column('down_payment_paid_at', sa.DateTime(), nullable=True),
+    sa.Column('start_time', sa.DateTime(), nullable=False),
+    sa.Column('duration', sa.Integer(), nullable=False),
     sa.Column('status', sa.Enum('cancelled', 'completed', 'on-process', 'waiting', 'pending', name='appointment_status_enum'), nullable=False),
     sa.Column('isDeleted', sa.Boolean(), nullable=True),
     sa.Column('status_updated_at', sa.DateTime(), nullable=True),
