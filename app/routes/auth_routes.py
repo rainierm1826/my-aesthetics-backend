@@ -46,9 +46,15 @@ def verify_otp_forgot_password():
 def reset_password():
     return auth_controller.reset_password()
 
-@auth_bp.route("/delete-admin/<string:id>", methods=["PATCH"])
-# @jwt_required()
-# @access_control("owner")
-def delete_admin(id):
-    return auth_controller.delete(id)
+@auth_bp.route("/send-email-verification-otp", methods=["POST"])
+def send_email_verification_otp():
+    return auth_controller.send_email_verification_otp()
 
+@auth_bp.route("/verify-email-otp", methods=["POST"])
+def verify_email_otp():
+    return auth_controller.verify_email_otp()
+
+@auth_bp.route("/change-password", methods=["POST"])
+@jwt_required()
+def change_password():
+    return auth_controller.change_password()

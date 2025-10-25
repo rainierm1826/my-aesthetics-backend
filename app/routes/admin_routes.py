@@ -19,3 +19,10 @@ def get_all_admin():
 @access_control("owner")
 def update_admin():
     return admin_controller.owner_update_admin()
+
+
+@admin_bp.route("/<string:id>", methods=["PATCH"])
+@jwt_required()
+@access_control("owner")
+def delete_admin(id):
+    return admin_controller.delete(id)

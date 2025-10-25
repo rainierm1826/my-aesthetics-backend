@@ -3,6 +3,7 @@ from ..models.admin_model import Admin
 from ..models.user_model import User
 from ..models.otp_model import OTP
 from ..models.owner_model import Owner
+from ..models.aesthetician_model import Aesthetician
 from flask import jsonify, request, make_response
 from ..extension import db
 from datetime import datetime, timedelta, timezone
@@ -31,10 +32,10 @@ class AuthController(BaseCRUDController):
                 return jsonify({"status": False, "message": "Missing email or password"}), 404
         
             if auth:
-                if auth.is_verified and auth.role_id == "1":
+                if auth.is_verified and auth.role_id == "1" and not auth.isDeleted:
                     return jsonify({"status": False, "message": "Email already exists"}), 409
                 
-                if auth.role_id in ["2", "3"]:
+                if auth.role_id in ["2", "3"] and not auth.isDeleted:
                     return jsonify({"status": False, "message": "Email already exists"}), 409
                 
                 else:
@@ -77,7 +78,7 @@ class AuthController(BaseCRUDController):
         
             auth = Auth.query.filter_by(email=data["email"]).first()
             
-            if auth:
+            if auth and not auth.isDeleted:
                 return jsonify({"status": False, "message": "Email already exists"}), 409
 
             if not self._validate_credentials(crendetials=data):
@@ -107,7 +108,7 @@ class AuthController(BaseCRUDController):
         
             auth = Auth.query.filter_by(email=data["email"]).first()
             
-            if auth:
+            if auth and not auth.isDeleted:
                 return jsonify({"status": False, "message": "Email already exists"}), 409
 
             if not self._validate_credentials(crendetials=data):
@@ -194,7 +195,8 @@ class AuthController(BaseCRUDController):
     def signin(self):
         try:
             data = request.json
-            auth = Auth.query.filter_by(email=data["email"]).first()
+            # Get the first NON-DELETED auth record with this email
+            auth = Auth.query.filter_by(email=data["email"], isDeleted=False).first()
             if not auth:
                 return jsonify({"status": False, "message": "Wrong email"}), 404
             
@@ -203,7 +205,27 @@ class AuthController(BaseCRUDController):
             
             if not auth.check_password(data["password"]):
                 return jsonify({"status": False, "message": "Wrong password"}), 404
-            access_token = create_access_token(identity=auth.account_id, additional_claims={"email": auth.email, "role":auth.role.role_name, "is_verified":auth.is_verified})
+            
+            # Check if the related user record is deleted (for admins/aestheticians)
+            try:
+                if auth.role_id == "2":  # Admin
+                    admin = Admin.query.filter_by(account_id=auth.account_id).first()
+                    if admin and admin.isDeleted:
+                        return jsonify({"status": False, "message": "Account has been deleted"}), 403
+                elif auth.role_id == "3":  # Aesthetician or Owner
+                    # Try to find Aesthetician first
+                    aesthetician = Aesthetician.query.filter_by(account_id=auth.account_id).first()
+                    if aesthetician and aesthetician.isDeleted:
+                        return jsonify({"status": False, "message": "Account has been deleted"}), 403
+                    # If not an Aesthetician, might be an Owner, which is fine
+            except Exception as check_error:
+                # Log the error but don't fail the login
+                print(f"Error checking deleted status: {str(check_error)}")
+            
+            # Get role name safely
+            role_name = auth.role.role_name if auth.role else "unknown"
+            
+            access_token = create_access_token(identity=auth.account_id, additional_claims={"email": auth.email, "role": role_name, "is_verified":auth.is_verified})
             refresh_token = create_refresh_token(identity=auth.account_id)
             response = make_response(jsonify({
                 "status": True,
@@ -347,6 +369,89 @@ class AuthController(BaseCRUDController):
             db.session.rollback()
             return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
 
+
+    def send_email_verification_otp(self):
+        """
+        Sends OTP to admin/owner email for email verification.
+        Expects: {"email": "user@example.com"}
+        """
+        try:
+            data = request.json
+
+            if not data.get("email"):
+                return jsonify({"status": False, "message": "Missing email"}), 400
+
+            auth = Auth.query.filter_by(email=data["email"]).first()
+
+            if not auth:
+                # For security, don't reveal if email exists
+                return jsonify({"status": True, "message": "If email exists, OTP will be sent"}), 200
+
+            # Delete any existing OTP for this email
+            OTP.query.filter_by(email=data["email"]).delete()
+            db.session.commit()
+
+            # Generate new OTP
+            expiration_time = datetime.now(timezone.utc) + timedelta(minutes=5)
+            otp = generate_otp()
+
+            new_otp = OTP(otp_code=otp, expires_at=expiration_time, email=data["email"])
+            db.session.add(new_otp)
+            db.session.commit()
+
+            send_email_otp(to_email=data["email"], otp=otp)
+
+            return jsonify({"status": True, "message": "OTP sent to email successfully"}), 200
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
+
+    def verify_email_otp(self):
+        """
+        Verifies OTP for email verification.
+        Expects: {"email": "user@example.com", "otp_code": "123456"}
+        """
+        try:
+            data = request.json
+
+            if not data.get("email") or not data.get("otp_code"):
+                return jsonify({"status": False, "message": "Missing email or OTP"}), 400
+
+            auth = Auth.query.filter_by(email=data["email"]).first()
+            if not auth:
+                return jsonify({"status": False, "message": "User not found"}), 404
+
+            otp = OTP.query.filter_by(
+                email=data["email"], 
+                otp_code=data["otp_code"], 
+                is_used=False
+            ).first()
+            
+            if not otp:
+                return jsonify({"status": False, "message": "Invalid OTP"}), 400
+
+            # Check expiry
+            if datetime.now(timezone.utc) > otp.expires_at:
+                return jsonify({"status": False, "message": "OTP Expired"}), 400
+
+            # Mark OTP as used
+            otp.is_used = True
+            
+            # Mark email as verified
+            auth.is_verified = True
+            
+            db.session.commit()
+
+            return jsonify({"status": True, "message": "Email Verified Successfully"}), 200
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                "status": False,
+                "message": "Internal Error",
+                "error": str(e)
+            }), 500
     
     def _validate_credentials(self, crendetials):
         required_fields = ["email", "password"]
@@ -354,3 +459,40 @@ class AuthController(BaseCRUDController):
             if field not in crendetials:
                 return False
         return True
+
+    def change_password(self):
+        """
+        Changes user's password with current password verification.
+        Expects: {"current_password": "old_pass", "new_password": "new_pass"}
+        Requires: JWT authentication
+        """
+        try:
+            from flask_jwt_extended import get_jwt_identity
+            identity = get_jwt_identity()
+            
+            data = request.json
+            
+            if not data.get("current_password") or not data.get("new_password"):
+                return jsonify({"status": False, "message": "Missing current_password or new_password"}), 400
+            
+            auth = Auth.query.filter_by(account_id=identity).first()
+            if not auth:
+                return jsonify({"status": False, "message": "User not found"}), 404
+            
+            # Verify current password
+            if not auth.check_password(data["current_password"]):
+                return jsonify({"status": False, "message": "Current password is incorrect"}), 401
+            
+            # Update password
+            auth.password = data["new_password"]
+            db.session.commit()
+            
+            return jsonify({"status": True, "message": "Password changed successfully"}), 200
+        
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({
+                "status": False,
+                "message": "Internal Error",
+                "error": str(e)
+            }), 500

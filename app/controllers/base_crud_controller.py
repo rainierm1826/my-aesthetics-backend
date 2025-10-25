@@ -79,7 +79,7 @@ class BaseCRUDController:
             query = self.model.query
             
             if hasattr(self.model, "isDeleted"):
-                query = query.filter_by(isDeleted=False)
+                query = query.filter(self.model.isDeleted == False)
             
             query = self._apply_joins(query)
             

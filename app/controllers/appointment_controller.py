@@ -259,6 +259,18 @@ class AppointmentController(BaseCRUDController):
             if not voucher:
                 return jsonify({"status": False, "message": "voucher does not exist"}), 404
             
+            # Check if voucher is expired
+            from datetime import datetime, timezone
+            now = datetime.now(timezone.utc)
+            if now < voucher.valid_from:
+                return jsonify({"status": False, "message": "voucher is not yet valid"}), 400
+            if now > voucher.valid_until:
+                return jsonify({"status": False, "message": "voucher has expired"}), 400
+            
+            # Check if voucher has quantity left
+            if voucher.quantity <= 0:
+                return jsonify({"status": False, "message": "voucher is no longer available"}), 400
+            
             if voucher.discount_type == "fixed":
                 to_pay -= voucher.discount_amount
             else:
