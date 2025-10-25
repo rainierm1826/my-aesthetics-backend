@@ -96,7 +96,6 @@ class AestheticianController(BaseCRUDController):
             # Build available slots
             slots = []
             current = shift_start
-            SLOT_INTERVAL = 30  # Check every 30 minutes
 
             while current + timedelta(minutes=duration) <= shift_end:
                 new_appointment_end = current + timedelta(minutes=duration)
@@ -116,7 +115,7 @@ class AestheticianController(BaseCRUDController):
                 if not overlap:
                     slots.append(current.strftime("%I:%M %p"))
 
-                current += timedelta(minutes=SLOT_INTERVAL)  # Always increment by 30 minutes
+                current += timedelta(minutes=duration)  # Increment by service duration
 
             return jsonify({
                 "status": True,
