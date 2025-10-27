@@ -106,7 +106,6 @@ class UserController(BaseCRUDController):
             }), 500
     
     def get_all_customers(self):
-        """Fetch all customers including walk-in and online customers"""
         try:
             # Get query parameters for pagination and filtering
             page = request.args.get("page", 1, type=int)
