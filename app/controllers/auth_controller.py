@@ -21,6 +21,7 @@ class AuthController(BaseCRUDController):
             
         )
     
+
     def customer_signup(self):
         try:
             data = request.json
@@ -491,6 +492,51 @@ class AuthController(BaseCRUDController):
         
         except Exception as e:
             db.session.rollback()
+            return jsonify({
+                "status": False,
+                "message": "Internal Error",
+                "error": str(e)
+            }), 500
+    
+    def refresh(self):
+        try:
+            from flask_jwt_extended import get_jwt_identity
+            
+            account_id = get_jwt_identity()
+            auth = Auth.query.get(account_id)
+            
+            if not auth:
+                return jsonify({"status": False, "message": "Account not found"}), 404
+            
+            if auth.isDeleted:
+                return jsonify({"status": False, "message": "Account has been deleted"}), 403
+            
+            # Get role name for the new token
+            try:
+                role_name = auth.role.role_name if auth.role else "unknown"
+                print(f"DEBUG REFRESH - Auth ID: {account_id}, Role: {role_name}, Role ID: {auth.role_id}")
+            except Exception as role_error:
+                print(f"DEBUG REFRESH - Error getting role: {role_error}")
+                role_name = "unknown"
+            
+            # Generate new access token with all claims
+            new_access_token = create_access_token(
+                identity=account_id,
+                additional_claims={
+                    "email": auth.email,
+                    "role": role_name,
+                    "is_verified": auth.is_verified
+                }
+            )
+            
+            print(f"DEBUG REFRESH - New token claims: email={auth.email}, role={role_name}, is_verified={auth.is_verified}")
+            return jsonify({
+                "status": True,
+                "message": "Token refreshed successfully",
+                "access_token": new_access_token
+            }), 200
+        
+        except Exception as e:
             return jsonify({
                 "status": False,
                 "message": "Internal Error",

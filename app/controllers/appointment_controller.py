@@ -10,13 +10,14 @@ from ..models.aesthetician_model import Aesthetician
 from ..models.service_model import Service
 from ..models.voucher_model import Voucher
 from ..helper.functions import validate_required_fields
-from sqlalchemy import func, asc, Integer, cast
+from sqlalchemy import func, asc
 from datetime import date, datetime, timedelta
 from xendit.apis import InvoiceApi
 from ..helper.constant import payment_methods, customer_notification_preference
 import xendit
 import time
 import os
+from datetime import timezone
 
 
 class AppointmentController(BaseCRUDController):
@@ -146,58 +147,57 @@ class AppointmentController(BaseCRUDController):
 
     
     def _custom_create(self, data):
-        # Walk-in logic
-        if data["is_walk_in"] == True:
-            # create walk-in
-            new_walk_in = self._create_walk_in(data)
-            
-            if isinstance(new_walk_in, tuple):
-                return new_walk_in  
-            
-            # create appointment
-            new_appointment = self._create_appointment(data, walk_in_id=new_walk_in.walk_in_id)
-            return new_appointment
+        try:
+            # Walk-in logic - identified by walk_in_id field
+            if "walk_in_id" in data and data["walk_in_id"]:
+                walk_in_id = data.get("walk_in_id")
+                
+                # Validate that walk-in customer exists
+                walk_in = WalkIn.query.filter_by(walk_in_id=walk_in_id, isDeleted=False).first()
+                if not walk_in:
+                    return jsonify({"status": False, "message": "walk-in customer not found"}), 404
+                
+                # create appointment with existing walk-in customer
+                new_appointment = self._create_appointment(data, walk_in_id=walk_in_id, is_walk_in=True)
+                return new_appointment
 
-        # Authenticated user logic
-        else:
-            identity = get_jwt_identity()
-            user = User.query.filter_by(account_id=identity).first()
-            # check if user exists
-            if not user:
-                return jsonify({"status": False, "message": "user not found"}), 404
-            # check if appointment already exists
-            pending_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "pending", Appointment.isDeleted==False).first()
-            if pending_appointment:
-                return jsonify({"status": False, "message": "Appointment already exists"}), 400
-            # check if user is in waiting list
-            waiting_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "waiting", Appointment.isDeleted==False).first()
-            if waiting_appointment:
-                return jsonify({"status": False, "message": "You are in waiting list"}), 400
-            
-            on_process_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "on-process", Appointment.isDeleted==False).first()
-            if on_process_appointment:
-                return jsonify({"status": False, "message": "You are in process list"}), 400  
-            
-            new_appointment = self._create_appointment(data, user_id=user.user_id)
-            return new_appointment
+            # Authenticated user logic
+            else:
+                identity = get_jwt_identity()
+                user = User.query.filter_by(account_id=identity).first()
+                # check if user exists
+                if not user:
+                    return jsonify({"status": False, "message": "user not found"}), 404
+                # check if appointment already exists
+                pending_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "pending", Appointment.isDeleted==False).first()
+                if pending_appointment:
+                    return jsonify({"status": False, "message": "Appointment already exists"}), 400
+                # check if user is in waiting list
+                waiting_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "waiting", Appointment.isDeleted==False).first()
+                if waiting_appointment:
+                    return jsonify({"status": False, "message": "You are in waiting list"}), 400
+                
+                on_process_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "on-process", Appointment.isDeleted==False).first()
+                if on_process_appointment:
+                    return jsonify({"status": False, "message": "You are in process list"}), 400  
+                
+                new_appointment = self._create_appointment(data, user_id=user.user_id, is_walk_in=False)
+                return new_appointment
+        except Exception as e:
+            print(f"Error in _custom_create: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                "status": False,
+                "message": f"Error creating appointment: {str(e)}"
+            }), 500
     
-    def _create_walk_in(self, data):
-        required_fields = ["first_name", "last_name", "middle_initial"]
-        if not validate_required_fields(data, required_fields):
-            return jsonify({"status": False, "message": "missing required fields"}), 400
-        
-        # Filter data to only include WalkIn model fields
-        walk_in_fields = ["first_name", "last_name", "middle_initial", "phone_number"]
-        walk_in_data = {key: data[key] for key in walk_in_fields if key in data}
-        
-        new_walk_in = WalkIn(**walk_in_data)
-        db.session.add(new_walk_in)
-        db.session.flush()
-        return new_walk_in
-
-    def _create_appointment(self, data, walk_in_id=None, user_id=None):
+    def _create_appointment(self, data, walk_in_id=None, user_id=None, is_walk_in=False):
         print(data)
-        is_walk_in = data.pop("is_walk_in")
+        # Remove walk_in_id and is_walk_in from data if present (we'll use the parameters instead)
+        data.pop("walk_in_id", None)
+        data.pop("is_walk_in", None)
+        
         data["walk_in_id"] = walk_in_id
         data["user_id"] = user_id
         data['status'] = "waiting"
@@ -205,6 +205,12 @@ class AppointmentController(BaseCRUDController):
         # Remove WalkIn-specific fields
         walk_in_fields = ["first_name", "last_name", "middle_initial", "phone_number"]
         appointment_data = {key: value for key, value in data.items() if key not in walk_in_fields}
+        
+        # Validate required fields
+        required_fields = ["service_id", "aesthetician_id", "branch_id", "date", "start_time"]
+        for field in required_fields:
+            if field not in appointment_data or not appointment_data[field]:
+                return jsonify({"status": False, "message": f"Missing required field: {field}"}), 400
         
         service = Service.query.get(appointment_data["service_id"])
         aesthetician = Aesthetician.query.get(appointment_data["aesthetician_id"])
@@ -235,12 +241,15 @@ class AppointmentController(BaseCRUDController):
 
         # Check overlaps in Python
         for apt in overlapping:
-            apt_start = apt.start_time
-            apt_end = (datetime.combine(datetime.today(), apt_start) + timedelta(minutes=apt.duration)).time()
-            new_start = start_time.time()
+            # Convert apt_start to time if it's a datetime
+            apt_start_time = apt.start_time.time() if isinstance(apt.start_time, datetime) else apt.start_time
+            apt_end = (datetime.combine(datetime.today(), apt_start_time) + timedelta(minutes=apt.duration)).time()
+            
+            # Get time from our new appointment
+            new_start_time = start_time.time()
             new_end = (start_time + timedelta(minutes=duration)).time()
             
-            if apt_start < new_end and apt_end > new_start:
+            if apt_start_time < new_end and apt_end > new_start_time:
                 return jsonify({
                     "status": False,
                     "message": "Aesthetician already has an appointment at that time"
@@ -259,9 +268,8 @@ class AppointmentController(BaseCRUDController):
             if not voucher:
                 return jsonify({"status": False, "message": "voucher does not exist"}), 404
             
-            # Check if voucher is expired
-            from datetime import datetime, timezone
-            now = datetime.now(timezone.utc)
+            # Check if voucher is expired (use naive datetime to match database)
+            now = datetime.now()
             if now < voucher.valid_from:
                 return jsonify({"status": False, "message": "voucher is not yet valid"}), 400
             if now > voucher.valid_until:
@@ -270,6 +278,13 @@ class AppointmentController(BaseCRUDController):
             # Check if voucher has quantity left
             if voucher.quantity <= 0:
                 return jsonify({"status": False, "message": "voucher is no longer available"}), 400
+            
+            # Check minimum spend requirement
+            if to_pay < voucher.minimum_spend:
+                return jsonify({
+                    "status": False, 
+                    "message": f"Minimum spend of ₱{voucher.minimum_spend} required to use this voucher"
+                }), 400
             
             if voucher.discount_type == "fixed":
                 to_pay -= voucher.discount_amount
@@ -361,7 +376,10 @@ class AppointmentController(BaseCRUDController):
             "down_payment_method": down_payment_method,
             "status": status,
             "duration": service.duration,
-            "start_time": datetime.strptime(appointment_data["start_time"], "%H:%M"),
+            "start_time": datetime.combine(
+                datetime.strptime(appointment_data["date"], "%Y-%m-%d").date(),
+                datetime.strptime(appointment_data["start_time"], "%H:%M").time()
+            ).replace(tzinfo=None),  # Store as naive datetime to avoid timezone conversion issues
             "payment_status": payment_status,
             "to_pay": to_pay,
             "down_payment": down_payment,
@@ -370,14 +388,19 @@ class AppointmentController(BaseCRUDController):
         })
         
         # Snapshots
-        if is_walk_in:
-            customer_name = f"{data.get('first_name', '')} {data.get('middle_initial', '')} {data.get('last_name', '')}".strip()
-            appointment_data["customer_name_snapshot"] = customer_name
-            appointment_data["phone_number"] = data.get("phone_number")
+        customer_name_snapshot = None
+        
+        if is_walk_in and walk_in_id:
+            walk_in = WalkIn.query.get(walk_in_id)
+            if walk_in:
+                customer_name_snapshot = f"{walk_in.first_name or ''} {walk_in.middle_initial or ''} {walk_in.last_name or ''}".strip()
+                appointment_data["customer_name_snapshot"] = customer_name_snapshot
+                appointment_data["phone_number"] = walk_in.phone_number
         elif user_id:
             user = User.query.get(user_id)
             if user:
-                appointment_data["customer_name_snapshot"] = customer_name
+                customer_name_snapshot = f"{user.first_name} {user.middle_initial or ''} {user.last_name}".strip()
+                appointment_data["customer_name_snapshot"] = customer_name_snapshot
                 appointment_data["phone_number"] = user.phone_number
 
         if getattr(aesthetician, "experience") == "pro":
@@ -403,6 +426,9 @@ class AppointmentController(BaseCRUDController):
             "voucher_discount_amount_snapshot": voucher.discount_amount if voucher else 0.0
         })
 
+        # Remove temporary fields that are not part of the Appointment model
+        appointment_data.pop("date", None)
+        appointment_data.pop("voucher_code", None)
         
         new_appointment = Appointment(**appointment_data)
         db.session.add(new_appointment)

@@ -82,23 +82,29 @@ class AestheticianController(BaseCRUDController):
             duration = service.duration  # minutes
 
             # Working hours
-            shift_start = datetime.combine(date, time(10, 0))
-            shift_end = datetime.combine(date, time(17, 0))
+            shift_start_hour = 10
+            shift_start_minute = 0
+            shift_end_hour = 17
+            shift_end_minute = 0
+            
+            shift_start = datetime.combine(date, time(shift_start_hour, shift_start_minute))
+            shift_end = datetime.combine(date, time(shift_end_hour, shift_end_minute))
 
             # Fetch appointments for that aesthetician on the same date
             appointments = Appointment.query.filter(
                 Appointment.aesthetician_id == aesthetician_id,
                 Appointment.isDeleted == False,
                 Appointment.status.in_(["waiting", "on-process", "pending"]),
-                func.date(Appointment.created_at) == date
+                func.date(Appointment.start_time) == date
             ).all()
 
-            # Build available slots
+            # Build available slots (only return available times)
             slots = []
             current = shift_start
 
             while current + timedelta(minutes=duration) <= shift_end:
                 new_appointment_end = current + timedelta(minutes=duration)
+                slot_time = current.strftime("%I:%M %p")
                 
                 overlap = False
                 for a in appointments:
@@ -113,7 +119,7 @@ class AestheticianController(BaseCRUDController):
                         break
 
                 if not overlap:
-                    slots.append(current.strftime("%I:%M %p"))
+                    slots.append(slot_time)
 
                 current += timedelta(minutes=duration)  # Increment by service duration
 
@@ -122,7 +128,14 @@ class AestheticianController(BaseCRUDController):
                 "aesthetician_id": aesthetician_id,
                 "service_id": service_id,
                 "date": date_str,
-                "available_slots": slots
+                "available_slots": slots,
+                "service_duration": duration,
+                "working_hours": {
+                    "start_hour": shift_start_hour,
+                    "start_minute": shift_start_minute,
+                    "end_hour": shift_end_hour,
+                    "end_minute": shift_end_minute
+                }
             })
 
         except Exception as e:

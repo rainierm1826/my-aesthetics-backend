@@ -2,15 +2,18 @@ from ..extension import db
 from datetime import datetime, timezone
 from sqlalchemy import CHAR
 from uuid import uuid4
+from .base_mixin import SoftDeleteMixin
+from ..helper.functions import generate_id
 
-class WalkIn(db.Model):
-    walk_in_id = db.Column(db.String(255), primary_key=True, default=lambda:str(uuid4()))
+class WalkIn(db.Model, SoftDeleteMixin):
+    walk_in_id = db.Column(db.String(255), primary_key=True, default=generate_id("MY"))
     first_name = db.Column(db.String(255), nullable=False)
     last_name = db.Column(db.String(255), nullable=False)
     middle_initial = db.Column(CHAR(1))
     phone_number = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    isDeleted = db.Column(db.Boolean, default=False)
     
     
     def to_dict(self):

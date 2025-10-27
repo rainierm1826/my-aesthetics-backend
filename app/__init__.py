@@ -52,6 +52,9 @@ def create_app():
     from .routes.voucher_routes import voucher_bp
     from .routes.analytics_routes import analytics_bp
     from .routes.admin_routes import admin_bp
+    from .routes.customer_analytics_routes import customer_analytics_bp
+    from .routes.walk_in_routes import walk_in_routes
+
     
     
     app.register_blueprint(auth_bp, url_prefix="/auth")
@@ -64,5 +67,7 @@ def create_app():
     app.register_blueprint(webhook_bp, url_prefix="/api")
     app.register_blueprint(analytics_bp, url_prefix="/analytics")
     app.register_blueprint(voucher_bp, url_prefix="/voucher")
+    app.register_blueprint(customer_analytics_bp, url_prefix="/customer")
+    app.register_blueprint(walk_in_routes)
     
     return app

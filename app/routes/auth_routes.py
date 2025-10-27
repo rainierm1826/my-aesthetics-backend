@@ -58,3 +58,9 @@ def verify_email_otp():
 @jwt_required()
 def change_password():
     return auth_controller.change_password()
+
+@auth_bp.route("/refresh", methods=["POST"])
+@jwt_required()
+def refresh():
+    return auth_controller.refresh()
+

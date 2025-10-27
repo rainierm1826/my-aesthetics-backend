@@ -24,8 +24,8 @@ class Voucher(db.Model, SoftDeleteMixin):
             "quantity": self.quantity,
             "discount_type": self.discount_type,
             "minimum_spend": self.minimum_spend,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
-            "valid_until": self.valid_until.isoformat(),
-            "valid_from": self.valid_from.isoformat()
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None,
+            "updated_at": self.updated_at.strftime("%Y-%m-%d %H:%M:%S") if self.updated_at else None,
+            "valid_until": self.valid_until.strftime("%Y-%m-%d %H:%M:%S") if self.valid_until else None,
+            "valid_from": self.valid_from.strftime("%Y-%m-%d %H:%M:%S") if self.valid_from else None
         }

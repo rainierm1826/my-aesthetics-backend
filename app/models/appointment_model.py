@@ -103,7 +103,7 @@ class Appointment(db.Model, SoftDeleteMixin):
             "voucher_discount_type_snapshot": self.voucher_discount_type_snapshot,
             "voucher_discount_amount_snapshot": self.voucher_discount_amount_snapshot,
             "status": self.status,
-            "start_time": self.start_time,
+            "start_time": self.start_time.strftime("%Y-%m-%d %H:%M:%S") if self.start_time else None,
             "duration": self.duration,
             "branch_rating": self.branch_rating,
             "service_rating": self.service_rating,
