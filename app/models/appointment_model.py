@@ -34,7 +34,6 @@ class Appointment(db.Model, SoftDeleteMixin):
     service_name_snapshot = db.Column(db.String(255), nullable=False)
     price_snapshot = db.Column(db.Integer, nullable=False)
     is_sale_snapshot = db.Column(db.Boolean, nullable=False, default=False)
-    service_name_snapshot = db.Column(db.String(255), nullable=False)
     category_snapshot = db.Column(db.String(255), nullable=False)
     discount_type_snapshot = db.Column(discount_type_enum, nullable=True)
     discount_snapshot = db.Column(Float, nullable=True)

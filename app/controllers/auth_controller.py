@@ -213,12 +213,8 @@ class AuthController(BaseCRUDController):
                     admin = Admin.query.filter_by(account_id=auth.account_id).first()
                     if admin and admin.isDeleted:
                         return jsonify({"status": False, "message": "Account has been deleted"}), 403
-                elif auth.role_id == "3":  # Aesthetician or Owner
-                    # Try to find Aesthetician first
-                    aesthetician = Aesthetician.query.filter_by(account_id=auth.account_id).first()
-                    if aesthetician and aesthetician.isDeleted:
-                        return jsonify({"status": False, "message": "Account has been deleted"}), 403
-                    # If not an Aesthetician, might be an Owner, which is fine
+                # Note: Aestheticians are not directly linked to Auth records via account_id
+                # They are managed separately, so we skip that check here
             except Exception as check_error:
                 # Log the error but don't fail the login
                 print(f"Error checking deleted status: {str(check_error)}")
