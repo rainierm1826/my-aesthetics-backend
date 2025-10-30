@@ -230,8 +230,8 @@ class AuthController(BaseCRUDController):
                 "auth": auth.to_dict(),
                 "access_token":access_token,
             }))
-            response.set_cookie("access_token", access_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=False)
-            response.set_cookie("refresh_token", refresh_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=False)
+            response.set_cookie("access_token", access_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=True)
+            response.set_cookie("refresh_token", refresh_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=True)
             return response
         except Exception as e:
             return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
