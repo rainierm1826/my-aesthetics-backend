@@ -10,6 +10,7 @@ class Branch(db.Model, SoftDeleteMixin):
     branch_name = db.Column(db.String(255), nullable=False)
     image = db.Column(db.Text, nullable=True)
     average_rate = db.Column(db.Float, nullable=True, default=None)
+    slot_capacity = db.Column(db.Integer, nullable=False, default=1)
     status = db.Column(branch_status_enum, nullable=False, default="active")
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
@@ -23,6 +24,7 @@ class Branch(db.Model, SoftDeleteMixin):
             "branch_name": self.branch_name,
             "image": self.image,
             "avarage_rate": self.average_rate,
+            "slot_capacity": self.slot_capacity,
             "status": self.status,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
