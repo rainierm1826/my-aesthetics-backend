@@ -80,8 +80,12 @@ class AestheticianController(BaseCRUDController):
                 return jsonify({"status": False, "message": "Service not found"})
 
             duration = service.duration  # minutes
+            
+            # Validate service duration
+            if not duration or duration <= 0:
+                return jsonify({"status": False, "message": "Invalid service duration"})
 
-            # Working hours
+            # Working hours: 10:00 AM to 5:00 PM
             shift_start_hour = 10
             shift_start_minute = 0
             shift_end_hour = 17
@@ -90,38 +94,84 @@ class AestheticianController(BaseCRUDController):
             shift_start = datetime.combine(date, time(shift_start_hour, shift_start_minute))
             shift_end = datetime.combine(date, time(shift_end_hour, shift_end_minute))
 
-            # Fetch appointments for that aesthetician on the same date
+            # Fetch all non-deleted appointments for that aesthetician on the same date
             appointments = Appointment.query.filter(
                 Appointment.aesthetician_id == aesthetician_id,
                 Appointment.isDeleted == False,
-                Appointment.status.in_(["waiting", "on-process", "pending"]),
                 func.date(Appointment.start_time) == date
             ).all()
 
-            # Build available slots (only return available times)
+            # Build available slot ranges
+            # Slots are generated based on service duration intervals
             slots = []
             current = shift_start
+            
+            # Get current time for checking if slots are in the past
+            now = datetime.now()
 
             while current + timedelta(minutes=duration) <= shift_end:
-                new_appointment_end = current + timedelta(minutes=duration)
-                slot_time = current.strftime("%I:%M %p")
+                slot_end = current + timedelta(minutes=duration)
                 
-                overlap = False
-                for a in appointments:
-                    # Extract just the time part and combine with the target date
-                    appointment_time = a.start_time.time() if isinstance(a.start_time, datetime) else a.start_time
-                    existing_start = datetime.combine(date, appointment_time)
-                    existing_end = existing_start + timedelta(minutes=a.duration)
-                    
-                    # Check overlap
-                    if current < existing_end and existing_start < new_appointment_end:
-                        overlap = True
-                        break
+                # Determine slot status
+                status = "available"
+                
+                # Check if slot is in the past
+                if current < now:
+                    status = "past-time"
+                else:
+                    # Check if this slot overlaps with any existing appointment
+                    for appointment in appointments:
+                        # Skip appointments with invalid duration
+                        if not appointment.duration or appointment.duration <= 0:
+                            continue
+                        
+                        # Get appointment start time - handle both datetime objects and strings
+                        existing_start = appointment.start_time
+                        
+                        # If it's a string, parse it to datetime
+                        if isinstance(existing_start, str):
+                            try:
+                                # Try parsing with datetime format
+                                existing_start = datetime.strptime(existing_start, "%Y-%m-%d %H:%M:%S")
+                            except ValueError:
+                                # If parsing fails, skip this appointment
+                                continue
+                        
+                        # Ensure it's a datetime object and is timezone-naive
+                        if not isinstance(existing_start, datetime):
+                            continue
+                        
+                        if existing_start.tzinfo is not None:
+                            existing_start = existing_start.replace(tzinfo=None)
+                        
+                        # Ensure appointment start time is on the correct date
+                        # If the appointment time is only extracted as a time (not a full datetime),
+                        # we need to combine it with the date
+                        if existing_start.date() != date:
+                            # Try to reconstruct with the correct date
+                            existing_start = datetime.combine(date, existing_start.time())
+                        
+                        # Calculate appointment end time
+                        existing_end = existing_start + timedelta(minutes=appointment.duration)
+                        
+                        # Check for overlap: two time ranges overlap if one doesn't end before the other starts
+                        # Slot overlaps if: slot_start < appointment_end AND slot_end > appointment_start
+                        if current < existing_end and slot_end > existing_start:
+                            status = "not-available"
+                            break
 
-                if not overlap:
-                    slots.append(slot_time)
+                # Add slot with status
+                slot_range = {
+                    "start_time": current.strftime("%I:%M %p"),
+                    "end_time": slot_end.strftime("%I:%M %p"),
+                    "start_time_24": current.strftime("%H:%M"),
+                    "end_time_24": slot_end.strftime("%H:%M"),
+                    "status": status
+                }
+                slots.append(slot_range)
 
-                current += timedelta(minutes=duration)  # Increment by service duration
+                # Move to next slot (increment by service duration)
+                current += timedelta(minutes=duration)
 
             return jsonify({
                 "status": True,

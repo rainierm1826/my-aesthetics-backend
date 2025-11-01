@@ -230,7 +230,17 @@ class AppointmentController(BaseCRUDController):
             return jsonify({"status": False, "message": "service is not available in this branch"}), 503
         
         
-        start_time = datetime.strptime(appointment_data["start_time"], "%H:%M")
+        # Parse and validate start time
+        try:
+            start_time = datetime.strptime(appointment_data["start_time"], "%H:%M")
+        except ValueError:
+            return jsonify({"status": False, "message": "Invalid time format. Use HH:MM (24-hour format)"}), 400
+        
+        # Validate that start time is within salon working hours (10:00 - 17:00)
+        start_hour = start_time.hour
+        if start_hour < 10 or start_hour >= 17:
+            return jsonify({"status": False, "message": "Appointment time must be between 10:00 AM and 5:00 PM"}), 400
+        
         duration = service.duration or 60  # fallback to 60 mins if missing
         
         overlapping = Appointment.query.filter(
