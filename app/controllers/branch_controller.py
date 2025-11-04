@@ -117,7 +117,7 @@ class BranchController(BaseCRUDController):
             # Working hours: 10:00 AM to 5:00 PM
             shift_start_hour = 10
             shift_start_minute = 0
-            shift_end_hour = 23
+            shift_end_hour = 17
             shift_end_minute = 0
 
             shift_start = datetime.combine(date, time(shift_start_hour, shift_start_minute))

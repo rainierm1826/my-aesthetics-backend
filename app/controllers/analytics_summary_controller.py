@@ -25,6 +25,30 @@ class AnalyticsSummaryController:
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         return query.scalar() or 0
     
+    def average_transaction_value(self):
+        total_revenue = self.total_revenue()
+        total_appointments = self.total_appointments()
+        if total_appointments == 0:
+            return 0
+        return round(total_revenue / total_appointments, 2)
+    
+    def total_discount_given(self):
+        query = db.session.query(func.sum(Appointment.discount_snapshot)).filter(
+            Appointment.status=="completed",
+            Appointment.discount_snapshot.isnot(None)
+        )
+        query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
+        result = query.scalar() or 0
+        return round(result, 2)
+    
+    def total_voucher_usage(self):
+        query = db.session.query(func.count(Appointment.appointment_id)).filter(
+            Appointment.status=="completed",
+            Appointment.voucher_code_snapshot.isnot(None)
+        )
+        query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
+        return query.scalar() or 0
+    
     def avarage_service_rating(self):
         query = db.session.query(func.avg(Service.average_rate))
         query = FilterAnalyticsController.apply_not_deleted(query, Service)
