@@ -510,7 +510,6 @@ class AuthController(BaseCRUDController):
             # Get role name for the new token
             try:
                 role_name = auth.role.role_name if auth.role else "unknown"
-                print(f"DEBUG REFRESH - Auth ID: {account_id}, Role: {role_name}, Role ID: {auth.role_id}")
             except Exception as role_error:
                 print(f"DEBUG REFRESH - Error getting role: {role_error}")
                 role_name = "unknown"
@@ -525,7 +524,6 @@ class AuthController(BaseCRUDController):
                 }
             )
             
-            print(f"DEBUG REFRESH - New token claims: email={auth.email}, role={role_name}, is_verified={auth.is_verified}")
             return jsonify({
                 "status": True,
                 "message": "Token refreshed successfully",

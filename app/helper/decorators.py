@@ -11,7 +11,6 @@ def access_control(*roles):
             verify_jwt_in_request()
             claims = get_jwt()
             user_role = claims.get("role")
-            print(f"DEBUG - User role: {user_role}, Required roles: {roles}, All claims: {claims}")
             if user_role not in roles:
                 return jsonify({"status": False, "message": f"Unauthorized. User role: {user_role}, Required: {roles}"}), 403
             return fn(*args, **kwargs)

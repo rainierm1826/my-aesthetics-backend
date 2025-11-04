@@ -36,4 +36,8 @@ def update_branch():
 @branch_bp.route("<string:branch_id>", methods=["GET"])
 def get_branch(branch_id):
     return branch_controller.get_by_id(branch_id)
+
+@branch_bp.route("<string:branch_id>/available-slots", methods=["GET"])
+def get_available_slots(branch_id):
+    return branch_controller.get_available_slots(branch_id)
     

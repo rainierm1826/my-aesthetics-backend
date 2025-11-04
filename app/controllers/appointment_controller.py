@@ -3,21 +3,14 @@ from ..models.appointment_model import Appointment
 from ..models.walk_in_model import WalkIn
 from ..models.user_model import User
 from ..extension import db
-from flask_jwt_extended import get_jwt_identity, get_jwt
+from flask_jwt_extended import get_jwt_identity
 from flask import jsonify, request
 from ..models.branch_model import Branch
 from ..models.aesthetician_model import Aesthetician
 from ..models.service_model import Service
 from ..models.voucher_model import Voucher
-from ..helper.functions import validate_required_fields
 from sqlalchemy import func, asc
-from datetime import date, datetime, timedelta
-from xendit.apis import InvoiceApi
-from ..helper.constant import payment_methods, customer_notification_preference
-import xendit
-import time
-import os
-from datetime import timezone
+from datetime import  datetime, timedelta
 
 
 class AppointmentController(BaseCRUDController):
@@ -28,8 +21,8 @@ class AppointmentController(BaseCRUDController):
             searchable_fields=["appointment_id", "first_name", "last_name"],
             sortable_fields={"start-time":Appointment.start_time},
             filterable_fields={"status": "status", "branch": (Branch, "branch_id"), "aesthetician": (Aesthetician, "aesthetician_name"), "service": (Service, "service_name"), "date":"created_at"},
-            updatable_fields=["status", "aesthetician_rating", "service_rating", "branch_rating", "service_comment", "branch_comment", "aesthetician_comment", "payment_status"],
-            joins=[(User, User.user_id==Appointment.user_id, "left"), (WalkIn, WalkIn.walk_in_id==Appointment.walk_in_id, "left"), (Branch, Branch.branch_id==Appointment.branch_id), (Aesthetician, Aesthetician.aesthetician_id==Appointment.aesthetician_id), (Service, Service.service_id==Appointment.service_id)]
+            updatable_fields=["status", "aesthetician_id", "aesthetician_name_snapshot", "aesthetician_rating", "service_rating", "branch_rating", "service_comment", "branch_comment", "aesthetician_comment", "payment_status"],
+            joins=[(User, User.user_id==Appointment.user_id, "left"), (WalkIn, WalkIn.walk_in_id==Appointment.walk_in_id, "left"), (Branch, Branch.branch_id==Appointment.branch_id), (Aesthetician, Aesthetician.aesthetician_id==Appointment.aesthetician_id, "left"), (Service, Service.service_id==Appointment.service_id)]
         )
     
     def get_appointment_history(self):
@@ -207,24 +200,33 @@ class AppointmentController(BaseCRUDController):
         appointment_data = {key: value for key, value in data.items() if key not in walk_in_fields}
         
         # Validate required fields
-        required_fields = ["service_id", "aesthetician_id", "branch_id", "date", "start_time"]
+        # aesthetician_id is now optional - will be assigned by admin later if not provided
+        required_fields = ["service_id", "branch_id", "date", "start_time"]
         for field in required_fields:
             if field not in appointment_data or not appointment_data[field]:
                 return jsonify({"status": False, "message": f"Missing required field: {field}"}), 400
         
         service = Service.query.get(appointment_data["service_id"])
-        aesthetician = Aesthetician.query.get(appointment_data["aesthetician_id"])
         branch = Branch.query.get(appointment_data["branch_id"])
 
+        if not service:
+            return jsonify({"status": False, "message": "service not found"}), 404
         
-        if not service or not aesthetician:
-            return jsonify({"status": False, "message": "service or aesthetician not found"}), 404
+        if not branch:
+            return jsonify({"status": False, "message": "branch not found"}), 404
         
-        if aesthetician.availability != "available":
-            return jsonify({"status": False, "message": "aesthetician is not available"}), 503
-        
-        if aesthetician.branch.branch_id != appointment_data['branch_id']:
-            return jsonify({"status": False, "message": "aesthetician is not available in this branch"}), 503
+        # If aesthetician_id is provided, validate it
+        aesthetician = None
+        if appointment_data.get("aesthetician_id"):
+            aesthetician = Aesthetician.query.get(appointment_data["aesthetician_id"])
+            if not aesthetician:
+                return jsonify({"status": False, "message": "aesthetician not found"}), 404
+            
+            if aesthetician.availability != "available":
+                return jsonify({"status": False, "message": "aesthetician is not available"}), 503
+            
+            if aesthetician.branch.branch_id != appointment_data['branch_id']:
+                return jsonify({"status": False, "message": "aesthetician is not available in this branch"}), 503
         
         if service.branch and service.branch.branch_id is not None and service.branch.branch_id != appointment_data['branch_id']:
             return jsonify({"status": False, "message": "service is not available in this branch"}), 503
@@ -232,43 +234,94 @@ class AppointmentController(BaseCRUDController):
         
         # Parse and validate start time
         try:
+            print(f"DEBUG - Received start_time: {appointment_data['start_time']}")
             start_time = datetime.strptime(appointment_data["start_time"], "%H:%M")
+            print(f"DEBUG - Parsed start_time: {start_time}")
         except ValueError:
             return jsonify({"status": False, "message": "Invalid time format. Use HH:MM (24-hour format)"}), 400
         
         # Validate that start time is within salon working hours (10:00 - 17:00)
         start_hour = start_time.hour
-        if start_hour < 10 or start_hour >= 17:
-            return jsonify({"status": False, "message": "Appointment time must be between 10:00 AM and 5:00 PM"}), 400
         
         duration = service.duration or 60  # fallback to 60 mins if missing
         
-        overlapping = Appointment.query.filter(
-        Appointment.aesthetician_id == appointment_data["aesthetician_id"],
-        Appointment.status.in_(["waiting", "on-process", "pending"]),
-        Appointment.isDeleted == False
+        # Check branch slot capacity for the requested time
+        appointment_datetime = datetime.combine(
+            datetime.strptime(appointment_data["date"], "%Y-%m-%d").date(),
+            start_time.time()
+        )
+        appointment_end = appointment_datetime + timedelta(minutes=duration)
+        
+        # Get all appointments for this branch on the same date
+        existing_appointments = Appointment.query.filter(
+            Appointment.branch_id == appointment_data["branch_id"],
+            Appointment.status.in_(["waiting", "on-process", "pending"]),
+            Appointment.isDeleted == False,
+            func.date(Appointment.start_time) == appointment_datetime.date()
         ).all()
+        
+        # Count how many appointments overlap with the new time slot
+        concurrent_count = 0
+        for apt in existing_appointments:
+            apt_start = apt.start_time
+            if isinstance(apt_start, str):
+                try:
+                    apt_start = datetime.strptime(apt_start, "%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    continue
+            
+            if not isinstance(apt_start, datetime):
+                continue
+            
+            # Remove timezone info if present
+            if apt_start.tzinfo is not None:
+                apt_start = apt_start.replace(tzinfo=None)
+            
+            apt_end = apt_start + timedelta(minutes=apt.duration)
+            
+            # Check if appointments overlap
+            if appointment_datetime < apt_end and appointment_end > apt_start:
+                concurrent_count += 1
+        
+        # Check if adding this appointment would exceed capacity
+        if concurrent_count >= branch.slot_capacity:
+            return jsonify({
+                "status": False,
+                "message": f"This time slot is fully booked. Maximum capacity of {branch.slot_capacity} reached."
+            }), 409
+        
+        # Only check for overlapping appointments if aesthetician is assigned
+        if aesthetician:
+            overlapping = Appointment.query.filter(
+            Appointment.aesthetician_id == appointment_data["aesthetician_id"],
+            Appointment.status.in_(["waiting", "on-process", "pending"]),
+            Appointment.isDeleted == False
+            ).all()
 
-        # Check overlaps in Python
-        for apt in overlapping:
-            # Convert apt_start to time if it's a datetime
-            apt_start_time = apt.start_time.time() if isinstance(apt.start_time, datetime) else apt.start_time
-            apt_end = (datetime.combine(datetime.today(), apt_start_time) + timedelta(minutes=apt.duration)).time()
-            
-            # Get time from our new appointment
-            new_start_time = start_time.time()
-            new_end = (start_time + timedelta(minutes=duration)).time()
-            
-            if apt_start_time < new_end and apt_end > new_start_time:
-                return jsonify({
-                    "status": False,
-                    "message": "Aesthetician already has an appointment at that time"
-                }), 409
+            # Check overlaps in Python
+            for apt in overlapping:
+                # Convert apt_start to time if it's a datetime
+                apt_start_time = apt.start_time.time() if isinstance(apt.start_time, datetime) else apt.start_time
+                apt_end = (datetime.combine(datetime.today(), apt_start_time) + timedelta(minutes=apt.duration)).time()
+                
+                # Get time from our new appointment
+                new_start_time = start_time.time()
+                new_end = (start_time + timedelta(minutes=duration)).time()
+                
+                if apt_start_time < new_end and apt_end > new_start_time:
+                    return jsonify({
+                        "status": False,
+                        "message": "Aesthetician already has an appointment at that time"
+                    }), 409
 
         to_pay = service.discounted_price or service.price
         
-        # Add pro experience fee
-        if aesthetician.experience == "pro":
+        # Add pro experience fee if aesthetician_experience is "pro"
+        # This applies regardless of whether aesthetician is assigned yet
+        if appointment_data.get("aesthetician_experience") == "pro":
+            to_pay += 1500
+        # Or check the assigned aesthetician's experience level
+        elif aesthetician and aesthetician.experience == "pro":
             to_pay += 1500
         
         # Apply voucher discount
@@ -307,94 +360,26 @@ class AppointmentController(BaseCRUDController):
         # Final amount can't go below zero
         to_pay = max(0, to_pay)
         
-        xendit_invoice_url = None
-        xendit_invoice_id = None
-        
         if is_walk_in:
             to_pay = appointment_data.get("to_pay", to_pay)
-            down_payment_method = None
-            down_payment = 0
-            to_pay = to_pay
             payment_status = "pending"
             status = "waiting"
         else:
-            down_payment = to_pay * 0.2
-            remaining_payment = to_pay - down_payment
-            claims = get_jwt()
-            email = claims.get("email")
-            user = User.query.get(user_id)
-            
-            if not user:
-                return jsonify({"status": False, "message": "User not found"}), 404
-        
-            customer_name = f"{user.first_name} {user.middle_initial or ''} {user.last_name}".strip()
-            
-            try:
-                client = xendit.ApiClient()
-                api_instance = InvoiceApi(client)
-                
-                external_id = f"appointment-{int(time.time())}-{user_id}"
-                
-                invoice_parameters = {
-                    "external_id": external_id,
-                    "amount": int(down_payment),
-                    "payer_email": email,
-                    "description": f"Down payment for {service.service_name} - {branch.branch_name}",
-                    "currency": "PHP",
-                    "invoice_duration": 3600,
-                    "success_redirect_url": f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/payment/success",
-                    "failure_redirect_url": f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/payment/failed",
-                    "customer": {
-                        "given_names": customer_name,
-                        "mobile_number": user.phone_number,
-                        "email": email
-                    },
-                    "customer_notification_preference": customer_notification_preference,
-                    "payment_methods":  payment_methods,
-                    "items": [
-                        {
-                            "name": f"Down payment - {service.service_name}",
-                            "quantity": 1,
-                            "price": int(down_payment)
-                        }
-                    ],
-                    "metadata": {
-                        "user_id": str(user_id),
-                        "service_id": str(appointment_data["service_id"]),
-                        "aesthetician_id": str(appointment_data["aesthetician_id"]),
-                        "branch_id": str(appointment_data["branch_id"]),
-                        "payment_type": "down_payment"
-                    }
-                }
-                response = api_instance.create_invoice(create_invoice_request=invoice_parameters)
-                xendit_invoice_url=response.invoice_url
-                xendit_invoice_id=response.id
-            except xendit.XenditSdkException as e:
-                return jsonify({
-                "status": False, 
-                "message": f"Failed to create payment invoice: {str(e)}"
-            }), 500
-            
-                    
-            down_payment_method = "xendit"
-            to_pay = remaining_payment
             payment_status = "pending"
-            status = "pending" 
+            status = "pending"
             
-            
+        final_start_time = datetime.combine(
+            datetime.strptime(appointment_data["date"], "%Y-%m-%d").date(),
+            datetime.strptime(appointment_data["start_time"], "%H:%M").time()
+        ).replace(tzinfo=None)
+        print(f"DEBUG - Final start_time to be saved: {final_start_time}")
+        
         appointment_data.update({
-            "down_payment_method": down_payment_method,
             "status": status,
             "duration": service.duration,
-            "start_time": datetime.combine(
-                datetime.strptime(appointment_data["date"], "%Y-%m-%d").date(),
-                datetime.strptime(appointment_data["start_time"], "%H:%M").time()
-            ).replace(tzinfo=None),  # Store as naive datetime to avoid timezone conversion issues
+            "start_time": final_start_time,  # Store as naive datetime to avoid timezone conversion issues
             "payment_status": payment_status,
             "to_pay": to_pay,
-            "down_payment": down_payment,
-            "xendit_invoice_id": xendit_invoice_id,
-            "xendit_external_id": f"appointment-{int(time.time())}-{user_id}" if not is_walk_in else None
         })
         
         # Snapshots
@@ -413,15 +398,16 @@ class AppointmentController(BaseCRUDController):
                 appointment_data["customer_name_snapshot"] = customer_name_snapshot
                 appointment_data["phone_number"] = user.phone_number
 
-        if getattr(aesthetician, "experience") == "pro":
-            isPro=True
+        # Create aesthetician snapshots only if aesthetician is assigned
+        if aesthetician:
+            isPro = getattr(aesthetician, "experience") == "pro"
+            aesthetician_name = f"{aesthetician.first_name or ''} {aesthetician.middle_initial or ''} {aesthetician.last_name or ''}".strip()
         else:
-            isPro=False
-        
-        aesthetician_name = f"{aesthetician.first_name or ''} {aesthetician.middle_initial or ''} {aesthetician.last_name or ''}".strip()
+            isPro = appointment_data.get("aesthetician_experience") == "pro"
+            aesthetician_name = None
         
         appointment_data.update({
-            "aesthetician_name_snapshot":aesthetician_name,
+            "aesthetician_name_snapshot": aesthetician_name,
             "service_name_snapshot": service.service_name,
             "category_snapshot": service.category,
             "price_snapshot": service.price,
@@ -433,71 +419,25 @@ class AppointmentController(BaseCRUDController):
             "branch_name_snapshot": branch.branch_name,
             "voucher_code_snapshot": appointment_data.get("voucher_code", None),
             "voucher_discount_type_snapshot": voucher.discount_type if voucher else None,
-            "voucher_discount_amount_snapshot": voucher.discount_amount if voucher else 0.0
+            "voucher_discount_amount_snapshot": voucher.discount_amount if voucher else 0.0,
+            "duration_snapshot": service.duration
         })
 
         # Remove temporary fields that are not part of the Appointment model
         appointment_data.pop("date", None)
         appointment_data.pop("voucher_code", None)
+        appointment_data.pop("aesthetician_experience", None)
         
         new_appointment = Appointment(**appointment_data)
         db.session.add(new_appointment)
-        
-        # At the end of the function, replace the return statements with:
-
-        if not is_walk_in and xendit_invoice_url:
-            new_appointment.payment_url = xendit_invoice_url
-            new_appointment.payment_required = True
-            
-            db.session.commit() 
-            db.session.refresh(new_appointment)  
-            
-            return jsonify({
-                "status": True,
-                "message": "Appointment created successfully",
-                "appointment": new_appointment.to_dict(), 
-                "invoice_url": xendit_invoice_url,
-            }), 201
-
-        # For walk-in appointments
         db.session.commit()
         db.session.refresh(new_appointment)
 
         return jsonify({
             "status": True,
-            "message": "Walk-in appointment created successfully",
+            "message": "Appointment created successfully",
             "appointment": new_appointment.to_dict(),
         }), 201
-
-    # xendit webhooks. use for updating dbs if paid or not
-    def xendit_webhook(self):
-        try:
-            payload = request.json
-            event = payload.get("status")
-            invoice_id = payload.get("id")
-            appointment = Appointment.query.filter_by(xendit_invoice_id=invoice_id).first()
-            if not appointment:
-                return jsonify({"status": True, "message": "appointment not found"}), 200  
-            
-            if event == "PAID":
-                appointment.down_payment_status = "completed"
-                appointment.status = "waiting" 
-                appointment.down_payment_paid_at = date.today()
-                appointment.payment_status = "partial"
-            elif event == "EXPIRED":
-                appointment.down_payment_status = "cancelled"
-                appointment.status = "cancelled"
-            else:
-                appointment.down_payment_status = event.lower()
-
-            appointment.xendit_invoice_id = invoice_id
-            db.session.commit()
-
-            return jsonify({"status": True, "message": "webhook processed"}), 200
-
-        except Exception as e:
-            print(f"❌ Webhook error: {str(e)}")
-            return jsonify({"status": False, "message": str(e)}), 500
 
     def get_reviews(self, service_id=None, aesthetician_id=None, branch_id=None):
         query = Appointment.query.with_entities(

@@ -7,6 +7,7 @@ def create_walk_in_customer():
     """Create a new walk-in customer"""
     try:
         data = request.get_json()
+        print(data)
         
         # Validate required fields
         if not data.get("first_name") or not data.get("last_name"):
@@ -77,7 +78,8 @@ def delete_walk_in_customer():
     """Soft delete a walk-in customer"""
     try:
         data = request.get_json()
-        walk_in_id = data
+        walk_in_id = data.get("walk_in_id")
+        print(walk_in_id)
         
         if not walk_in_id:
             return jsonify({"error": "walk_in_id is required"}), 400
@@ -88,7 +90,6 @@ def delete_walk_in_customer():
         
         # Soft delete by setting isDeleted to True
         walk_in.isDeleted = True
-        walk_in.updated_at = datetime.now(timezone.utc)
         
         db.session.commit()
         
@@ -98,5 +99,6 @@ def delete_walk_in_customer():
         }), 200
     
     except Exception as e:
+        print(str(e))
         db.session.rollback()
         return jsonify({"error": str(e)}), 500

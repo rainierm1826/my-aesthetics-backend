@@ -6,7 +6,6 @@ from app import db
 from ..models.appointment_model import Appointment
 from datetime import date
 
-webhook_bp = Blueprint("webhook", __name__)
 appointment_bp = Blueprint("appointment", __name__)
 appointment_controller = AppointmentController()
 
@@ -56,7 +55,3 @@ def get_reviews():
         aesthetician_id=aesthetician_id,
         branch_id=branch_id
     )
-
-@webhook_bp.route("/webhook/xendit", methods=["POST"])
-def get_xendit_webhook():
-    return appointment_controller.xendit_webhook()

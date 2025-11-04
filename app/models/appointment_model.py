@@ -13,7 +13,7 @@ class Appointment(db.Model, SoftDeleteMixin):
     user_id = db.Column(db.String(255), db.ForeignKey("user.user_id"), nullable=True)
     walk_in_id = db.Column(db.String(255), db.ForeignKey("walk_in.walk_in_id"), nullable=True)
     branch_id = db.Column(db.String(255), db.ForeignKey("branch.branch_id"), nullable=False)
-    aesthetician_id = db.Column(db.String(255), db.ForeignKey("aesthetician.aesthetician_id"), nullable=False)
+    aesthetician_id = db.Column(db.String(255), db.ForeignKey("aesthetician.aesthetician_id"), nullable=True)
     service_id = db.Column(db.String(255), db.ForeignKey("service.service_id"), nullable=False)
     
     # slot_number = db.Column(db.Integer, nullable=False)
@@ -38,28 +38,21 @@ class Appointment(db.Model, SoftDeleteMixin):
     discount_type_snapshot = db.Column(discount_type_enum, nullable=True)
     discount_snapshot = db.Column(Float, nullable=True)
     discounted_price_snapshot = db.Column(Float, nullable=True)
-    aesthetician_name_snapshot = db.Column(db.String(255), nullable=False)
+    aesthetician_name_snapshot = db.Column(db.String(255), nullable=True)
     is_pro_snapshot = db.Column(db.Boolean, nullable=False, default=False)
     branch_name_snapshot = db.Column(db.String(255), nullable=False)
     voucher_code_snapshot = db.Column(db.String(255), nullable=True)
     voucher_discount_type_snapshot = db.Column(discount_type_enum, nullable=True, )
     voucher_discount_amount_snapshot = db.Column(db.Float, nullable=True, default=0.0)
+    duration_snapshot = db.Column(db.Integer, nullable=True)
     
     # voucher
     voucher_code = db.Column(db.String(255), db.ForeignKey("voucher.voucher_code"), nullable=True)
     
     # transaction
-    down_payment_method = db.Column(payment_method_enum, nullable=True)
-    down_payment = db.Column(db.Float, nullable=False, default=0.0)
-    down_payment_status = db.Column(down_payment_status_enum, nullable=True)
     final_payment_method = db.Column(payment_method_enum, nullable=False)
-    to_pay = db.Column(db.Float, nullable=False, default=0.0) # the price you're going to pay. the pro aesthetician, voucher and down payment if applicable is already deducted  
-    payment_status = db.Column(payment_status_enum, nullable=False) # partial for dp and completed for complete payment
-    
-    # xendit
-    xendit_invoice_id = db.Column(db.String(255), nullable=True)
-    xendit_external_id = db.Column(db.String(255), nullable=True, unique=True)
-    down_payment_paid_at = db.Column(db.DateTime, nullable=True)
+    to_pay = db.Column(db.Float, nullable=False, default=0.0) # the price you're going to pay
+    payment_status = db.Column(payment_status_enum, nullable=False) # pending or completed
 
 
     # time
@@ -69,7 +62,6 @@ class Appointment(db.Model, SoftDeleteMixin):
    
     isDeleted = db.Column(db.Boolean, default=False)
     
-    status_updated_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=True)
     created_at = db.Column(db.Date, default=date.today())
     updated_at = db.Column(db.Date, default=date.today(), onupdate=date.today())
     
@@ -101,6 +93,7 @@ class Appointment(db.Model, SoftDeleteMixin):
             "voucher_code_snapshot": self.voucher_code_snapshot,
             "voucher_discount_type_snapshot": self.voucher_discount_type_snapshot,
             "voucher_discount_amount_snapshot": self.voucher_discount_amount_snapshot,
+            "duration_snapshot": self.duration_snapshot,
             "status": self.status,
             "start_time": self.start_time.strftime("%Y-%m-%d %H:%M:%S") if self.start_time else None,
             "duration": self.duration,
@@ -110,13 +103,16 @@ class Appointment(db.Model, SoftDeleteMixin):
             "service_comment": self.service_comment,
             "branch_comment": self.branch_comment,
             "aesthetician_comment": self.aesthetician_comment,
-            "down_payment_method": self.down_payment_method,
-            "down_payment": self.down_payment,
             "final_payment_method": self.final_payment_method,
             "to_pay": self.to_pay,
             "payment_status": self.payment_status,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "branch_id": self.branch_id,
+            "service_id": self.service_id,
+            "aesthetician_id": self.aesthetician_id,
+            "user_id": self.user_id,
+            "walk_in_id": self.walk_in_id,
         }
     
 
