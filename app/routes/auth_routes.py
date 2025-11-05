@@ -64,3 +64,7 @@ def change_password():
 def refresh():
     return auth_controller.refresh()
 
+@auth_bp.route("/verify-session", methods=["GET"])
+@jwt_required()
+def verify_session():
+    return auth_controller.verify_session()

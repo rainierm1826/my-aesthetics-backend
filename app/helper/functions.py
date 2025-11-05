@@ -65,7 +65,7 @@ def send_email_otp(to_email, otp, expiry=10):
 
     # Build the email
     message = MIMEMultipart("alternative")
-    message["From"] = f"My App <{EMAIL_ADDRESS}>"
+    message["From"] = f"MY Aesthetics Brow Studio"
     message["To"] = to_email
     message["Subject"] = "🔑 Account Verification Code"
     message.attach(MIMEText(text_content, "plain"))

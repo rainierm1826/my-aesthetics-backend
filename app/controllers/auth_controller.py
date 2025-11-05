@@ -536,3 +536,43 @@ class AuthController(BaseCRUDController):
                 "message": "Internal Error",
                 "error": str(e)
             }), 500
+    
+    def verify_session(self):
+        """Verify the current session and return user information"""
+        try:
+            from flask_jwt_extended import get_jwt_identity, get_jwt
+            
+            account_id = get_jwt_identity()
+            claims = get_jwt()
+            
+            if not account_id:
+                return jsonify({"status": False, "message": "Not authenticated"}), 401
+            
+            # Get the auth record to verify it still exists and is not deleted
+            auth = Auth.query.get(account_id)
+            
+            if not auth or auth.isDeleted:
+                return jsonify({"status": False, "message": "Account not found or deleted"}), 401
+            
+            # Check if related user record is deleted (for admins)
+            if auth.role_id == "2":  # Admin
+                admin = Admin.query.filter_by(account_id=auth.account_id).first()
+                if admin and admin.isDeleted:
+                    return jsonify({"status": False, "message": "Account has been deleted"}), 401
+            
+            # Return user information
+            role_name = auth.role.role_name if auth.role else "unknown"
+            
+            return jsonify({
+                "account_id": account_id,
+                "email": claims.get("email", auth.email),
+                "role": role_name,
+                "is_verified": auth.is_verified
+            }), 200
+            
+        except Exception as e:
+            return jsonify({
+                "status": False,
+                "message": "Invalid or expired token",
+                "error": str(e)
+            }), 401
