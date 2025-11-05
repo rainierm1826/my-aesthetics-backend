@@ -55,3 +55,7 @@ def get_reviews():
         aesthetician_id=aesthetician_id,
         branch_id=branch_id
     )
+
+@appointment_bp.route("/available-slots", methods=["GET"])
+def get_available_slots():
+    return appointment_controller.get_available_slots()

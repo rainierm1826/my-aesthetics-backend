@@ -515,4 +515,205 @@ class AppointmentController(BaseCRUDController):
 
         db.session.commit()
 
+    def get_available_slots(self):
+        """
+        Generate available appointment slots for a given branch and aesthetician.
+        
+        Query params:
+        - branch_id: Required - The branch ID
+        - aesthetician_id: Optional - The aesthetician ID (if provided, checks aesthetician availability)
+        - service_id: Required - The service ID (to get duration)
+        - date: Required - The date in YYYY-MM-DD format
+        
+        Returns slots with status: "available", "booked", or "past"
+        """
+        try:
+            branch_id = request.args.get("branch_id")
+            aesthetician_id = request.args.get("aesthetician_id")
+            service_id = request.args.get("service_id")
+            date_str = request.args.get("date")
+
+            # Validate required parameters
+            if not all([branch_id, service_id, date_str]):
+                return jsonify({"status": False, "message": "Missing required parameters: branch_id, service_id, date"})
+
+            # Parse date
+            try:
+                date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except ValueError:
+                return jsonify({"status": False, "message": "Invalid date format. Use YYYY-MM-DD"})
+
+            # Fetch branch
+            branch = Branch.query.get(branch_id)
+            if not branch:
+                return jsonify({"status": False, "message": "Branch not found"})
+
+            slot_capacity = branch.slot_capacity
+            if not slot_capacity or slot_capacity <= 0:
+                return jsonify({"status": False, "message": "Invalid branch slot capacity"})
+
+            # Fetch opening and closing times from branch
+            opening_time = branch.opening_time if branch.opening_time else datetime.strptime("10:00", "%H:%M").time()
+            closing_time = branch.closing_time if branch.closing_time else datetime.strptime("17:00", "%H:%M").time()
+
+            # Fetch service duration
+            service = Service.query.get(service_id)
+            if not service:
+                return jsonify({"status": False, "message": "Service not found"})
+
+            duration = service.duration  # minutes
+            if not duration or duration <= 0:
+                return jsonify({"status": False, "message": "Invalid service duration"})
+
+            # If aesthetician_id is provided, validate it
+            aesthetician = None
+            if aesthetician_id:
+                aesthetician = Aesthetician.query.get(aesthetician_id)
+                if not aesthetician:
+                    return jsonify({"status": False, "message": "Aesthetician not found"})
+
+            # Define working hours based on branch times
+            shift_start = datetime.combine(date, opening_time)
+            shift_end = datetime.combine(date, closing_time)
+            
+            # If closing time is midnight (00:00:00), it means end of day, so add 1 day
+            if closing_time.hour == 0 and closing_time.minute == 0 and closing_time.second == 0:
+                shift_end = shift_end + timedelta(days=1)
+
+            # Fetch all active appointments for the branch on the given date
+            branch_appointments = Appointment.query.filter(
+                Appointment.branch_id == branch_id,
+                Appointment.isDeleted == False,
+                Appointment.status.in_(["waiting", "on-process", "pending"]),
+                func.date(Appointment.start_time) == date
+            ).all()
+
+            # If aesthetician is specified, fetch their appointments
+            aesthetician_appointments = []
+            if aesthetician_id:
+                aesthetician_appointments = Appointment.query.filter(
+                    Appointment.aesthetician_id == aesthetician_id,
+                    Appointment.isDeleted == False,
+                    Appointment.status.in_(["waiting", "on-process", "pending"]),
+                    func.date(Appointment.start_time) == date
+                ).all()
+
+            # Generate slots
+            slots = []
+            current = shift_start
+            now = datetime.now()
+
+            while current + timedelta(minutes=duration) <= shift_end:
+                slot_end = current + timedelta(minutes=duration)
+                
+                # Default status
+                status = "available"
+                
+                # Check if slot is in the past
+                if current < now:
+                    status = "past"
+                else:
+                    # Check if aesthetician is busy at this time (if aesthetician_id provided)
+                    aesthetician_busy = False
+                    if aesthetician_id and aesthetician_appointments:
+                        for appointment in aesthetician_appointments:
+                            if not appointment.duration or appointment.duration <= 0:
+                                continue
+                            
+                            existing_start = appointment.start_time
+                            
+                            # Handle string conversion
+                            if isinstance(existing_start, str):
+                                try:
+                                    existing_start = datetime.strptime(existing_start, "%Y-%m-%d %H:%M:%S")
+                                except ValueError:
+                                    continue
+                            
+                            if not isinstance(existing_start, datetime):
+                                continue
+                            
+                            if existing_start.tzinfo is not None:
+                                existing_start = existing_start.replace(tzinfo=None)
+                            
+                            if existing_start.date() != date:
+                                existing_start = datetime.combine(date, existing_start.time())
+                            
+                            existing_end = existing_start + timedelta(minutes=appointment.duration)
+                            
+                            # Check for overlap
+                            if current < existing_end and slot_end > existing_start:
+                                aesthetician_busy = True
+                                break
+                    
+                    if aesthetician_busy:
+                        status = "booked"
+                    else:
+                        # Check branch capacity
+                        concurrent_count = 0
+                        for appointment in branch_appointments:
+                            if not appointment.duration or appointment.duration <= 0:
+                                continue
+
+                            existing_start = appointment.start_time
+                            
+                            if isinstance(existing_start, str):
+                                try:
+                                    existing_start = datetime.strptime(existing_start, "%Y-%m-%d %H:%M:%S")
+                                except ValueError:
+                                    continue
+
+                            if not isinstance(existing_start, datetime):
+                                continue
+
+                            if existing_start.tzinfo is not None:
+                                existing_start = existing_start.replace(tzinfo=None)
+
+                            if existing_start.date() != date:
+                                existing_start = datetime.combine(date, existing_start.time())
+
+                            existing_end = existing_start + timedelta(minutes=appointment.duration)
+
+                            # Check for overlap
+                            if current < existing_end and slot_end > existing_start:
+                                concurrent_count += 1
+
+                        # If concurrent appointments >= slot_capacity, mark as booked
+                        if concurrent_count >= slot_capacity:
+                            status = "booked"
+
+                # Add slot with status
+                slot_range = {
+                    "start_time": current.strftime("%I:%M %p"),
+                    "end_time": slot_end.strftime("%I:%M %p"),
+                    "start_time_24": current.strftime("%H:%M"),
+                    "end_time_24": slot_end.strftime("%H:%M"),
+                    "status": status
+                }
+                slots.append(slot_range)
+
+                # Move to next slot
+                current += timedelta(minutes=duration)
+
+            response = {
+                "status": True,
+                "branch_id": branch_id,
+                "service_id": service_id,
+                "date": date_str,
+                "available_slots": slots,
+                "service_duration": duration,
+                "slot_capacity": slot_capacity,
+                "working_hours": {
+                    "opening_time": opening_time.strftime("%H:%M"),
+                    "closing_time": closing_time.strftime("%H:%M")
+                }
+            }
+
+            if aesthetician_id:
+                response["aesthetician_id"] = aesthetician_id
+
+            return jsonify(response)
+
+        except Exception as e:
+            return jsonify({"status": False, "message": "Internal error", "error": str(e)})
+
 
