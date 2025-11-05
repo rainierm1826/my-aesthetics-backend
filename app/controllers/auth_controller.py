@@ -230,8 +230,30 @@ class AuthController(BaseCRUDController):
                 "auth": auth.to_dict(),
                 "access_token":access_token,
             }))
-            response.set_cookie("access_token", access_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=True)
-            response.set_cookie("refresh_token", refresh_token, max_age=60 * 60 * 24 * 7, httponly=True, secure=True)
+            
+            # Get environment-specific cookie settings
+            import os
+            is_production = os.getenv("ENVIRONMENT", "development") == "production"
+            cookie_secure = is_production
+            cookie_samesite = "None" if is_production else "Lax"
+            
+            # Set cookies with appropriate security settings
+            response.set_cookie(
+                "access_token", 
+                access_token, 
+                max_age=60 * 60 * 24 * 7, 
+                httponly=True, 
+                secure=cookie_secure,
+                samesite=cookie_samesite
+            )
+            response.set_cookie(
+                "refresh_token", 
+                refresh_token, 
+                max_age=60 * 60 * 24 * 7, 
+                httponly=True, 
+                secure=cookie_secure,
+                samesite=cookie_samesite
+            )
             return response
         except Exception as e:
             return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
@@ -242,8 +264,16 @@ class AuthController(BaseCRUDController):
             "status": True,
             "message": "logout successfully"
         }))
-            response.delete_cookie("access_token")
-            response.delete_cookie("refresh_token")
+            
+            # Get environment-specific cookie settings
+            import os
+            is_production = os.getenv("ENVIRONMENT", "development") == "production"
+            cookie_secure = is_production
+            cookie_samesite = "None" if is_production else "Lax"
+            
+            # Delete cookies with the same settings they were set with
+            response.delete_cookie("access_token", secure=cookie_secure, samesite=cookie_samesite)
+            response.delete_cookie("refresh_token", secure=cookie_secure, samesite=cookie_samesite)
             return response
         except Exception as e:
             return jsonify({"status": False, "message":"Internal Error"}), 500
