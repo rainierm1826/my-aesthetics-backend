@@ -13,9 +13,9 @@ class BranchController(BaseCRUDController):
         super().__init__(
             model=Branch,
             id_field="branch_id",
-            required_fields=["branch_name", "barangay", "city", "province", "region", "lot", "slot_capacity"],
+            required_fields=["branch_name", "barangay", "city", "province", "region", "lot", "slot_capacity", "opening_time", "closing_time"],
             searchable_fields=["branch_name"],
-            updatable_fields=["branch_name", "barangay", "city", "province", "region", "lot", "status", "slot_capacity"],
+            updatable_fields=["branch_name", "barangay", "city", "province", "region", "lot", "status", "slot_capacity", "opening_time", "closing_time"],
             sortable_fields={"rate": Branch.average_rate},
             joins=[(Address, Address.address_id == Branch.address_id)]
         )
@@ -114,14 +114,12 @@ class BranchController(BaseCRUDController):
             if not duration or duration <= 0:
                 return jsonify({"status": False, "message": "Invalid service duration"})
 
-            # Working hours: 10:00 AM to 5:00 PM
-            shift_start_hour = 10
-            shift_start_minute = 0
-            shift_end_hour = 17
-            shift_end_minute = 0
+            # Working hours from branch opening and closing times
+            opening_time = branch.opening_time if branch.opening_time else time(10, 0)
+            closing_time = branch.closing_time if branch.closing_time else time(17, 0)
 
-            shift_start = datetime.combine(date, time(shift_start_hour, shift_start_minute))
-            shift_end = datetime.combine(date, time(shift_end_hour, shift_end_minute))
+            shift_start = datetime.combine(date, opening_time)
+            shift_end = datetime.combine(date, closing_time)
 
             # Fetch all non-deleted and active appointments for that branch on the same date
             appointments = Appointment.query.filter(
@@ -203,10 +201,8 @@ class BranchController(BaseCRUDController):
                 "service_duration": duration,
                 "slot_capacity": slot_capacity,
                 "working_hours": {
-                    "start_hour": shift_start_hour,
-                    "start_minute": shift_start_minute,
-                    "end_hour": shift_end_hour,
-                    "end_minute": shift_end_minute
+                    "opening_time": opening_time.strftime("%H:%M"),
+                    "closing_time": closing_time.strftime("%H:%M")
                 }
             })
 
