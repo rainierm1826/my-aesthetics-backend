@@ -238,13 +238,16 @@ class AuthController(BaseCRUDController):
             cookie_samesite = "None" if is_production else "Lax"
             
             # Set cookies with appropriate security settings
+            # Note: When SameSite=None, domain should not be set or set to None
+            # to allow the browser to send cookies to the originating domain
             response.set_cookie(
                 "access_token", 
                 access_token, 
                 max_age=60 * 60 * 24 * 7, 
                 httponly=True, 
                 secure=cookie_secure,
-                samesite=cookie_samesite
+                samesite=cookie_samesite,
+                domain=None  # Let browser handle domain automatically
             )
             response.set_cookie(
                 "refresh_token", 
@@ -252,7 +255,8 @@ class AuthController(BaseCRUDController):
                 max_age=60 * 60 * 24 * 7, 
                 httponly=True, 
                 secure=cookie_secure,
-                samesite=cookie_samesite
+                samesite=cookie_samesite,
+                domain=None  # Let browser handle domain automatically
             )
             return response
         except Exception as e:
@@ -272,8 +276,8 @@ class AuthController(BaseCRUDController):
             cookie_samesite = "None" if is_production else "Lax"
             
             # Delete cookies with the same settings they were set with
-            response.delete_cookie("access_token", secure=cookie_secure, samesite=cookie_samesite)
-            response.delete_cookie("refresh_token", secure=cookie_secure, samesite=cookie_samesite)
+            response.delete_cookie("access_token", secure=cookie_secure, samesite=cookie_samesite, domain=None)
+            response.delete_cookie("refresh_token", secure=cookie_secure, samesite=cookie_samesite, domain=None)
             return response
         except Exception as e:
             return jsonify({"status": False, "message":"Internal Error"}), 500
@@ -606,3 +610,24 @@ class AuthController(BaseCRUDController):
                 "message": "Invalid or expired token",
                 "error": str(e)
             }), 401
+    
+    def check_cookies(self):
+        """Debug endpoint to check cookie configuration"""
+        import os
+        from flask import request as flask_request
+        
+        cookies = flask_request.cookies
+        is_production = os.getenv("ENVIRONMENT", "development") == "production"
+        
+        return jsonify({
+            "environment": "production" if is_production else "development",
+            "has_access_token": "access_token" in cookies,
+            "has_refresh_token": "refresh_token" in cookies,
+            "cookies_found": list(cookies.keys()),
+            "cors_origins": ["http://localhost:3000", "https://my-aesthetics-three.vercel.app", "https://myaestheticsbrowstudio.com"],
+            "cookie_settings": {
+                "secure": is_production,
+                "samesite": "None" if is_production else "Lax",
+                "httponly": True
+            }
+        }), 200

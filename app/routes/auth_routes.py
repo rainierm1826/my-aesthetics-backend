@@ -68,3 +68,7 @@ def refresh():
 @jwt_required()
 def verify_session():
     return auth_controller.verify_session()
+
+@auth_bp.route("/check-cookies", methods=["GET"])
+def check_cookies():
+    return auth_controller.check_cookies()
