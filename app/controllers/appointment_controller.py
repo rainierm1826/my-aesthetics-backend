@@ -602,13 +602,6 @@ class AppointmentController(BaseCRUDController):
             slots = []
             current = shift_start
             now = datetime.now()
-            today = datetime.now().date()
-            
-            print(f"DEBUG - Now: {now}")
-            print(f"DEBUG - Today: {today}")
-            print(f"DEBUG - Selected date: {date}")
-            print(f"DEBUG - Shift start: {shift_start}")
-            print(f"DEBUG - Shift end: {shift_end}")
 
             while current + timedelta(minutes=duration) <= shift_end:
                 slot_end = current + timedelta(minutes=duration)
@@ -616,16 +609,10 @@ class AppointmentController(BaseCRUDController):
                 # Default status
                 status = "available"
                 
-                # Check if slot is in the past
-                # Only mark as past if it's today and the time has passed
-                if date < today:
-                    # All slots are in the past if the date is before today
+                # Check if slot is in the past by comparing the actual datetime
+                # This works correctly even when closing time is midnight (next day)
+                if current < now:
                     status = "past"
-                    print(f"DEBUG - Slot {current.strftime('%I:%M %p')} marked as past (date before today)")
-                elif date == today and current < now:
-                    # Slot is in the past if it's today and time has passed
-                    status = "past"
-                    print(f"DEBUG - Slot {current.strftime('%I:%M %p')} marked as past (current < now: {current} < {now})")
                 else:
                     # Check if aesthetician is busy at this time (if aesthetician_id provided)
                     aesthetician_busy = False
