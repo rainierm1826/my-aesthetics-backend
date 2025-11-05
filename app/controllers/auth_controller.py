@@ -237,9 +237,12 @@ class AuthController(BaseCRUDController):
             cookie_secure = is_production
             cookie_samesite = "None" if is_production else "Lax"
             
+            # Set domain for cookie sharing across subdomains
+            # In production: .myaestheticsbrowstudio.com allows cookies to work on both
+            # api.myaestheticsbrowstudio.com and myaestheticsbrowstudio.com
+            cookie_domain = ".myaestheticsbrowstudio.com" if is_production else None
+            
             # Set cookies with appropriate security settings
-            # Note: When SameSite=None, domain should not be set or set to None
-            # to allow the browser to send cookies to the originating domain
             response.set_cookie(
                 "access_token", 
                 access_token, 
@@ -247,7 +250,7 @@ class AuthController(BaseCRUDController):
                 httponly=True, 
                 secure=cookie_secure,
                 samesite=cookie_samesite,
-                domain=None  # Let browser handle domain automatically
+                domain=cookie_domain
             )
             response.set_cookie(
                 "refresh_token", 
@@ -256,7 +259,7 @@ class AuthController(BaseCRUDController):
                 httponly=True, 
                 secure=cookie_secure,
                 samesite=cookie_samesite,
-                domain=None  # Let browser handle domain automatically
+                domain=cookie_domain
             )
             return response
         except Exception as e:
@@ -274,10 +277,11 @@ class AuthController(BaseCRUDController):
             is_production = os.getenv("ENVIRONMENT", "development") == "production"
             cookie_secure = is_production
             cookie_samesite = "None" if is_production else "Lax"
+            cookie_domain = ".myaestheticsbrowstudio.com" if is_production else None
             
             # Delete cookies with the same settings they were set with
-            response.delete_cookie("access_token", secure=cookie_secure, samesite=cookie_samesite, domain=None)
-            response.delete_cookie("refresh_token", secure=cookie_secure, samesite=cookie_samesite, domain=None)
+            response.delete_cookie("access_token", secure=cookie_secure, samesite=cookie_samesite, domain=cookie_domain)
+            response.delete_cookie("refresh_token", secure=cookie_secure, samesite=cookie_samesite, domain=cookie_domain)
             return response
         except Exception as e:
             return jsonify({"status": False, "message":"Internal Error"}), 500
