@@ -11,6 +11,7 @@ from ..models.service_model import Service
 from ..models.voucher_model import Voucher
 from sqlalchemy import func, asc
 from datetime import  datetime, timedelta
+import pytz
 
 
 class AppointmentController(BaseCRUDController):
@@ -517,8 +518,6 @@ class AppointmentController(BaseCRUDController):
 
     def get_available_slots(self):
         """
-        "try:"
-        
         Generate available appointment slots for a given branch and aesthetician.
         
         Query params:
@@ -603,7 +602,10 @@ class AppointmentController(BaseCRUDController):
             # Generate slots
             slots = []
             current = shift_start
-            now = datetime.now()
+            
+            # Get current time in Philippines timezone
+            philippines_tz = pytz.timezone('Asia/Manila')
+            now = datetime.now(philippines_tz).replace(tzinfo=None)  # Get PH time as naive datetime
 
             while current + timedelta(minutes=duration) <= shift_end:
                 slot_end = current + timedelta(minutes=duration)
