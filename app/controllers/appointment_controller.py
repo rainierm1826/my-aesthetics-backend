@@ -517,6 +517,8 @@ class AppointmentController(BaseCRUDController):
 
     def get_available_slots(self):
         """
+        "try:"
+        
         Generate available appointment slots for a given branch and aesthetician.
         
         Query params:
