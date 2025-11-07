@@ -21,29 +21,87 @@ class AppointmentController(BaseCRUDController):
             id_field="appointment_id",
             searchable_fields=["appointment_id", "first_name", "last_name"],
             sortable_fields={"start-time":Appointment.start_time},
-            filterable_fields={"status": "status", "branch": (Branch, "branch_id"), "aesthetician": (Aesthetician, "aesthetician_name"), "service": (Service, "service_name"), "date":"created_at"},
+            filterable_fields={"status": "status", "branch": (Branch, "branch_id"), "aesthetician": (Aesthetician, "aesthetician_name"), "service": (Service, "service_name"), "date":"start_time"},
             updatable_fields=["status", "aesthetician_id", "aesthetician_name_snapshot", "aesthetician_rating", "service_rating", "branch_rating", "service_comment", "branch_comment", "aesthetician_comment", "payment_status"],
             joins=[(User, User.user_id==Appointment.user_id, "left"), (WalkIn, WalkIn.walk_in_id==Appointment.walk_in_id, "left"), (Branch, Branch.branch_id==Appointment.branch_id), (Aesthetician, Aesthetician.aesthetician_id==Appointment.aesthetician_id, "left"), (Service, Service.service_id==Appointment.service_id)]
         )
     
     def get_appointment_history(self):
-        original_apply_filters = self._apply_filters
-        def user_only_filter(query):
-            query = super(AppointmentController, self)._apply_filters(query)
+        """Get appointment history for the authenticated user with proper date filtering"""
+        try:
+            # Get the authenticated user
             identity = get_jwt_identity()
             user = User.query.filter_by(account_id=identity).first()
             if not user:
-                raise Exception("User not found")
-            return query.filter(Appointment.user_id == user.user_id)
-        try:
-            self._apply_filters = user_only_filter
-            return super().get_all()
-        finally:
-            self._apply_filters = original_apply_filters
+                return jsonify({"status": False, "message": "User not found"}), 404
+            
+            # Start with base query with joins
+            query = self._apply_joins(db.session.query(self.model))
+            
+            # Apply date filtering if date parameter is present
+            date_value = request.args.get("date")
+            if date_value:
+                query = query.filter(func.date(Appointment.start_time) == date_value)
+            
+            # Apply other filters (excluding date since we handled it)
+            for param, model_field in self.filterable_fields.items():
+                if param == "date":
+                    continue  # Skip date, we already handled it
+                value = request.args.get(param)
+                if value:
+                    if isinstance(model_field, tuple):
+                        model, field = model_field
+                        query = query.filter(getattr(model, field) == value)
+                    else:
+                        query = query.filter(getattr(self.model, model_field) == value)
+            
+            # Filter by current user
+            query = query.filter(Appointment.user_id == user.user_id)
+            
+            # Apply soft delete filter
+            query = query.filter(self.model.isDeleted == False)
+            
+            # Apply sorting
+            query = self._apply_sorting(query)
+            
+            # Get all results (no pagination for history)
+            appointments = query.all()
+            
+            return jsonify({
+                "status": True,
+                "appointment": [appointment.to_dict() for appointment in appointments],
+                "total": len(appointments)
+            }), 200
+        except Exception as e:
+            print(f"Error in get_appointment_history: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            db.session.rollback()
+            return jsonify({
+                "status": False,
+                "message": "Internal error",
+                "error": str(e)
+            }), 500
 
     
     def _apply_sorting(self, query):
         return query.order_by(asc(Appointment.start_time))
+    
+    def _apply_filters(self, query):
+        """Override to handle date filtering on start_time datetime field"""
+        for param, model_field in self.filterable_fields.items():
+            value = request.args.get(param)
+            if value:
+                # Special handling for date filtering on start_time
+                if param == "date" and model_field == "start_time":
+                    # Extract date from start_time datetime and compare
+                    query = query.filter(func.date(Appointment.start_time) == value)
+                elif isinstance(model_field, tuple):
+                    model, field = model_field
+                    query = query.filter(getattr(model, field) == value)
+                else:
+                    query = query.filter(getattr(self.model, model_field) == value)
+        return query
     
     
     def update_reviews(self):
@@ -368,12 +426,18 @@ class AppointmentController(BaseCRUDController):
         else:
             payment_status = "pending"
             status = "pending"
-            
+        
+        # Debug: Log the date and time before combining
+        print(f"DEBUG - appointment_data['date']: {appointment_data['date']}")
+        print(f"DEBUG - appointment_data['start_time']: {appointment_data['start_time']}")
+        
         final_start_time = datetime.combine(
             datetime.strptime(appointment_data["date"], "%Y-%m-%d").date(),
             datetime.strptime(appointment_data["start_time"], "%H:%M").time()
         ).replace(tzinfo=None)
         print(f"DEBUG - Final start_time to be saved: {final_start_time}")
+        print(f"DEBUG - Final start_time date component: {final_start_time.date()}")
+        print(f"DEBUG - Final start_time time component: {final_start_time.time()}")
         
         appointment_data.update({
             "status": status,
