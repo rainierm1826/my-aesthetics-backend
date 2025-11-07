@@ -1,5 +1,5 @@
 from flask import Flask
-from .extension import db, jwt, migrate
+from .extension import db, jwt, migrate, socketio
 from flask_cors import CORS
 from .config import Config
 import os
@@ -16,6 +16,7 @@ def create_app():
     db.init_app(app)
     jwt.init_app(app)
     migrate.init_app(app, db)
+    socketio.init_app(app)
     
     xendit.set_api_key(os.getenv("XENDIT_API_KEY"))
     
@@ -68,5 +69,8 @@ def create_app():
     app.register_blueprint(voucher_bp, url_prefix="/voucher")
     app.register_blueprint(customer_analytics_bp, url_prefix="/customer")
     app.register_blueprint(walk_in_routes)
+    
+    # Import socket events to register handlers
+    from . import socket_events
     
     return app

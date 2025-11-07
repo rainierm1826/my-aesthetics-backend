@@ -12,6 +12,7 @@ from ..models.voucher_model import Voucher
 from sqlalchemy import func, asc
 from datetime import  datetime, timedelta
 import pytz
+from ..socket_events import emit_new_appointment, emit_appointment_updated, emit_appointment_deleted
 
 
 class AppointmentController(BaseCRUDController):
@@ -25,6 +26,16 @@ class AppointmentController(BaseCRUDController):
             updatable_fields=["status", "aesthetician_id", "aesthetician_name_snapshot", "aesthetician_rating", "service_rating", "branch_rating", "service_comment", "branch_comment", "aesthetician_comment", "payment_status"],
             joins=[(User, User.user_id==Appointment.user_id, "left"), (WalkIn, WalkIn.walk_in_id==Appointment.walk_in_id, "left"), (Branch, Branch.branch_id==Appointment.branch_id), (Aesthetician, Aesthetician.aesthetician_id==Appointment.aesthetician_id, "left"), (Service, Service.service_id==Appointment.service_id)]
         )
+    
+    def delete(self, id):
+        """Override delete to emit WebSocket event"""
+        response = super().delete(id)
+        
+        # If deletion was successful, emit WebSocket event
+        if response[1] == 200:  # Check status code
+            emit_appointment_deleted(id)
+        
+        return response
     
     def get_appointment_history(self):
         """Get appointment history for the authenticated user with proper date filtering"""
@@ -195,6 +206,10 @@ class AppointmentController(BaseCRUDController):
 
         db.session.commit()
         db.session.refresh(appointment)
+        
+        # Emit WebSocket event for appointment update
+        emit_appointment_updated(appointment.to_dict())
+        
         return appointment
 
     
@@ -497,6 +512,9 @@ class AppointmentController(BaseCRUDController):
         db.session.add(new_appointment)
         db.session.commit()
         db.session.refresh(new_appointment)
+
+        # Emit WebSocket event for new appointment
+        emit_new_appointment(new_appointment.to_dict())
 
         return jsonify({
             "status": True,
