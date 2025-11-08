@@ -235,7 +235,8 @@ class AuthController(BaseCRUDController):
             import os
             is_production = os.getenv("ENVIRONMENT", "development") == "production"
             cookie_secure = is_production
-            cookie_samesite = "None" if is_production else "Lax"
+            # Use Lax instead of None to avoid third-party cookie blocking in browsers
+            cookie_samesite = "Lax"
             
             # Set domain for cookie sharing across subdomains
             # In production: .myaestheticsbrowstudio.com allows cookies to work on both
@@ -276,7 +277,8 @@ class AuthController(BaseCRUDController):
             import os
             is_production = os.getenv("ENVIRONMENT", "development") == "production"
             cookie_secure = is_production
-            cookie_samesite = "None" if is_production else "Lax"
+            # Use Lax instead of None to avoid third-party cookie blocking in browsers
+            cookie_samesite = "Lax"
             cookie_domain = ".myaestheticsbrowstudio.com" if is_production else None
             
             # Delete cookies with the same settings they were set with
