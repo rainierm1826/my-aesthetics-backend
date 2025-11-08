@@ -17,7 +17,8 @@ class Config:
     JWT_ACCESS_COOKIE_NAME = "access_token"
     JWT_REFRESH_COOKIE_NAME = "refresh_token"
     # Allow cookies to be sent with cross-origin requests (important for production)
-    JWT_COOKIE_SAMESITE = "None" if os.getenv("ENVIRONMENT") == "production" else "Lax"
+    # Use Lax instead of None to avoid third-party cookie blocking in browsers
+    JWT_COOKIE_SAMESITE = "Lax"
     # Token expiration times - 7 days for both access and refresh tokens
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
