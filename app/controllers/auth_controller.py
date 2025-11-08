@@ -243,7 +243,17 @@ class AuthController(BaseCRUDController):
             # api.myaestheticsbrowstudio.com and myaestheticsbrowstudio.com
             cookie_domain = ".myaestheticsbrowstudio.com" if is_production else None
             
-            # Set cookies with appropriate security settings
+            # First, clear any existing cookies (including old SameSite=None cookies)
+            # This ensures clean state for users with old cookies
+            response.delete_cookie("access_token", secure=cookie_secure, samesite=cookie_samesite, domain=cookie_domain)
+            response.delete_cookie("refresh_token", secure=cookie_secure, samesite=cookie_samesite, domain=cookie_domain)
+            
+            # Also try to delete with old SameSite=None settings in case they exist
+            if is_production:
+                response.delete_cookie("access_token", secure=True, samesite="None", domain=cookie_domain)
+                response.delete_cookie("refresh_token", secure=True, samesite="None", domain=cookie_domain)
+            
+            # Now set fresh cookies with appropriate security settings
             response.set_cookie(
                 "access_token", 
                 access_token, 
@@ -659,3 +669,35 @@ class AuthController(BaseCRUDController):
                 "httponly": True
             }
         }), 200
+    
+    def clear_cookies(self):
+        """Endpoint to forcefully clear all auth cookies - useful for migration"""
+        import os
+        
+        is_production = os.getenv("ENVIRONMENT", "development") == "production"
+        cookie_secure = is_production
+        cookie_domain = ".myaestheticsbrowstudio.com" if is_production else None
+        
+        response = make_response(jsonify({
+            "status": True,
+            "message": "All auth cookies cleared successfully"
+        }))
+        
+        # Clear with Lax settings (current)
+        response.delete_cookie("access_token", secure=cookie_secure, samesite="Lax", domain=cookie_domain)
+        response.delete_cookie("refresh_token", secure=cookie_secure, samesite="Lax", domain=cookie_domain)
+        
+        # Also clear with None settings (old cookies that might still exist)
+        if is_production:
+            response.delete_cookie("access_token", secure=True, samesite="None", domain=cookie_domain)
+            response.delete_cookie("refresh_token", secure=True, samesite="None", domain=cookie_domain)
+        
+        # Also try without domain (edge case)
+        response.delete_cookie("access_token", secure=cookie_secure, samesite="Lax")
+        response.delete_cookie("refresh_token", secure=cookie_secure, samesite="Lax")
+        
+        if is_production:
+            response.delete_cookie("access_token", secure=True, samesite="None")
+            response.delete_cookie("refresh_token", secure=True, samesite="None")
+        
+        return response
