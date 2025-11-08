@@ -72,3 +72,7 @@ def verify_session():
 @auth_bp.route("/check-cookies", methods=["GET"])
 def check_cookies():
     return auth_controller.check_cookies()
+
+@auth_bp.route("/clear-cookies", methods=["POST"])
+def clear_cookies():
+    return auth_controller.clear_cookies()
