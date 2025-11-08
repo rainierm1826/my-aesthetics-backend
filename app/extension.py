@@ -6,6 +6,6 @@ from flask_socketio import SocketIO
 db = SQLAlchemy()
 jwt = JWTManager()
 migrate = Migrate()
-socketio = SocketIO(cors_allowed_origins=["http://localhost:3000", "https://my-aesthetics-three.vercel.app", "https://myaestheticsbrowstudio.com"])
+socketio = SocketIO(cors_allowed_origins=["http://localhost:3000", "https://my-aesthetics-three.vercel.app", "https://myaestheticsbrowstudio.com", "https://www.myaestheticsbrowstudio.com"])
 
 
