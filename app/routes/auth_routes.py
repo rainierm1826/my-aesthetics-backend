@@ -60,7 +60,7 @@ def change_password():
     return auth_controller.change_password()
 
 @auth_bp.route("/refresh", methods=["POST"])
-@jwt_required()
+@jwt_required(refresh=True)  # Use refresh token instead of access token
 def refresh():
     return auth_controller.refresh()
 

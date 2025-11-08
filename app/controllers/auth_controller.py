@@ -564,11 +564,33 @@ class AuthController(BaseCRUDController):
                 }
             )
             
-            return jsonify({
+            # Create response with updated cookie
+            response = make_response(jsonify({
                 "status": True,
                 "message": "Token refreshed successfully",
-                "access_token": new_access_token
-            }), 200
+                "access_token": new_access_token,
+                "auth": auth.to_dict()
+            }))
+            
+            # Get environment-specific cookie settings
+            import os
+            is_production = os.getenv("ENVIRONMENT", "development") == "production"
+            cookie_secure = is_production
+            cookie_samesite = "Lax"
+            cookie_domain = ".myaestheticsbrowstudio.com" if is_production else None
+            
+            # Update the access_token cookie
+            response.set_cookie(
+                "access_token", 
+                new_access_token, 
+                max_age=60 * 60 * 24 * 7, 
+                httponly=True, 
+                secure=cookie_secure,
+                samesite=cookie_samesite,
+                domain=cookie_domain
+            )
+            
+            return response
         
         except Exception as e:
             return jsonify({
@@ -633,7 +655,7 @@ class AuthController(BaseCRUDController):
             "cors_origins": ["http://localhost:3000", "https://my-aesthetics-three.vercel.app", "https://myaestheticsbrowstudio.com"],
             "cookie_settings": {
                 "secure": is_production,
-                "samesite": "None" if is_production else "Lax",
+                "samesite": "Lax",  # Changed from None to Lax to fix browser compatibility
                 "httponly": True
             }
         }), 200
