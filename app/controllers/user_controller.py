@@ -115,6 +115,8 @@ class UserController(BaseCRUDController):
             sort_by = request.args.get("sort_by", "created_at", type=str)
             order = request.args.get("order", "desc", type=str)  # "asc" or "desc"
             
+            from sqlalchemy import func
+            
             # Build online customers query - only fetch customers with role_id = "1"
             online_query = User.query.join(Auth, User.account_id == Auth.account_id).filter(
                 User.isDeleted == False,
@@ -126,18 +128,45 @@ class UserController(BaseCRUDController):
             
             # Apply search filter
             if search:
+                # Create full name search conditions for online customers
+                online_full_name_with_mi = func.concat(
+                    User.first_name, ' ',
+                    User.middle_initial, '. ',
+                    User.last_name
+                )
+                online_full_name_without_mi = func.concat(
+                    User.first_name, ' ',
+                    User.last_name
+                )
+                
                 online_query = online_query.filter(
                     db.or_(
                         User.first_name.ilike(f"%{search}%"),
                         User.last_name.ilike(f"%{search}%"),
-                        User.phone_number.ilike(f"%{search}%")
+                        User.phone_number.ilike(f"%{search}%"),
+                        online_full_name_with_mi.ilike(f"%{search}%"),
+                        online_full_name_without_mi.ilike(f"%{search}%")
                     )
                 )
+                
+                # Create full name search conditions for walk-in customers
+                walkin_full_name_with_mi = func.concat(
+                    WalkIn.first_name, ' ',
+                    WalkIn.middle_initial, '. ',
+                    WalkIn.last_name
+                )
+                walkin_full_name_without_mi = func.concat(
+                    WalkIn.first_name, ' ',
+                    WalkIn.last_name
+                )
+                
                 walkin_query = walkin_query.filter(
                     db.or_(
                         WalkIn.first_name.ilike(f"%{search}%"),
                         WalkIn.last_name.ilike(f"%{search}%"),
-                        WalkIn.phone_number.ilike(f"%{search}%")
+                        WalkIn.phone_number.ilike(f"%{search}%"),
+                        walkin_full_name_with_mi.ilike(f"%{search}%"),
+                        walkin_full_name_without_mi.ilike(f"%{search}%")
                     )
                 )
             
@@ -165,7 +194,7 @@ class UserController(BaseCRUDController):
             
             is_descending = order.lower() == "desc"
             
-            # Apply sorting and pagination
+            # Apply sorting (without pagination yet)
             if online_query:
                 if is_descending:
                     online_query = online_query.order_by(sort_field_online.desc())
@@ -178,15 +207,15 @@ class UserController(BaseCRUDController):
                 else:
                     walkin_query = walkin_query.order_by(sort_field_walkin.asc())
             
-            # Fetch data
-            online_customers = online_query.offset((page - 1) * limit).limit(limit).all() if online_query else []
-            walkin_customers = walkin_query.offset((page - 1) * limit).limit(limit).all() if walkin_query else []
+            # Fetch all data (we'll paginate after merging)
+            online_customers = online_query.all() if online_query else []
+            walkin_customers = walkin_query.all() if walkin_query else []
             
-            # Format response
-            customers = []
+            # Format all customers into a single list
+            all_customers = []
             
             for customer in online_customers:
-                customers.append({
+                all_customers.append({
                     "id": customer.user_id,
                     "first_name": customer.first_name,
                     "last_name": customer.last_name,
@@ -194,11 +223,12 @@ class UserController(BaseCRUDController):
                     "phone_number": customer.phone_number,
                     "type": "online",
                     "created_at": customer.created_at.isoformat() if customer.created_at else None,
+                    "created_at_raw": customer.created_at,  # For sorting
                     "image": customer.image
                 })
             
             for customer in walkin_customers:
-                customers.append({
+                all_customers.append({
                     "id": customer.walk_in_id,
                     "first_name": customer.first_name,
                     "last_name": customer.last_name,
@@ -206,8 +236,35 @@ class UserController(BaseCRUDController):
                     "phone_number": customer.phone_number,
                     "type": "walkin",
                     "created_at": customer.created_at.isoformat() if customer.created_at else None,
+                    "created_at_raw": customer.created_at,  # For sorting
                     "image": None
                 })
+            
+            # Sort the merged list based on sort_by
+            def safe_sort_key(x):
+                if sort_by == "name":
+                    return (x['first_name'] or '').lower()
+                elif sort_by == "phone":
+                    return x['phone_number'] or ''
+                else:  # created_at
+                    created = x['created_at_raw']
+                    if created is None:
+                        return datetime(1900, 1, 1)
+                    # Remove timezone info if present to avoid comparison issues
+                    if hasattr(created, 'tzinfo') and created.tzinfo is not None:
+                        return created.replace(tzinfo=None)
+                    return created
+            
+            all_customers.sort(key=safe_sort_key, reverse=is_descending)
+            
+            # Apply pagination to the merged list
+            start_idx = (page - 1) * limit
+            end_idx = start_idx + limit
+            customers = all_customers[start_idx:end_idx]
+            
+            # Remove the raw created_at field used for sorting
+            for customer in customers:
+                customer.pop('created_at_raw', None)
             
             # Calculate pagination info
             total_pages = (total_count + limit - 1) // limit
@@ -228,6 +285,9 @@ class UserController(BaseCRUDController):
             
         except Exception as e:
             db.session.rollback()
+            print(f"Error in get_all_customers: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return jsonify({
                 "status": False,
                 "message": "Internal error",
