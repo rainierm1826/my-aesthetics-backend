@@ -20,7 +20,7 @@ class AppointmentController(BaseCRUDController):
         super().__init__(
             model=Appointment,
             id_field="appointment_id",
-            searchable_fields=["appointment_id", "first_name", "last_name"],
+            searchable_fields=["appointment_id", "customer_name_snapshot", "aesthetician_name_snapshot"],
             sortable_fields={"start-time":Appointment.start_time},
             filterable_fields={"status": "status", "branch": (Branch, "branch_id"), "aesthetician": (Aesthetician, "aesthetician_name"), "service": (Service, "service_name"), "date":"start_time"},
             updatable_fields=["status", "aesthetician_id", "aesthetician_name_snapshot", "aesthetician_rating", "service_rating", "branch_rating", "service_comment", "branch_comment", "aesthetician_comment", "payment_status"],
@@ -100,11 +100,17 @@ class AppointmentController(BaseCRUDController):
     
     def _apply_filters(self, query):
         """Override to handle date filtering on start_time datetime field"""
+        # Check if there's a search query - if so, skip date filtering to search across all dates
+        search_query = request.args.get("query")
+        
         for param, model_field in self.filterable_fields.items():
             value = request.args.get(param)
             if value:
+                # Skip date filter when searching to allow searching across all dates
+                if param == "date" and search_query:
+                    continue
                 # Special handling for date filtering on start_time
-                if param == "date" and model_field == "start_time":
+                elif param == "date" and model_field == "start_time":
                     # Extract date from start_time datetime and compare
                     query = query.filter(func.date(Appointment.start_time) == value)
                 elif isinstance(model_field, tuple):

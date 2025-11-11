@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from ..extension import db
-from sqlalchemy import or_, asc, desc
+from sqlalchemy import or_, asc, desc, func
 from ..helper.functions import validate_required_fields, convert_formdata_types
 import cloudinary.uploader
 
@@ -240,6 +240,25 @@ class BaseCRUDController:
                 for field in self.searchable_fields
                 if hasattr(self.model, field) 
             ]
+            
+            # Add full name search if first_name, last_name, and middle_initial exist
+            if (hasattr(self.model, 'first_name') and 
+                hasattr(self.model, 'last_name') and 
+                hasattr(self.model, 'middle_initial')):
+                full_name_with_mi = func.concat(
+                    self.model.first_name, ' ',
+                    self.model.middle_initial, '. ',
+                    self.model.last_name
+                )
+                full_name_without_mi = func.concat(
+                    self.model.first_name, ' ',
+                    self.model.last_name
+                )
+                search_conditions.extend([
+                    full_name_with_mi.ilike(f"%{search}%"),
+                    full_name_without_mi.ilike(f"%{search}%")
+                ])
+            
             if search_conditions: 
                 query = query.filter(or_(*search_conditions))
         return query
