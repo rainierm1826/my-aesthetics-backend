@@ -17,6 +17,7 @@ class AestheticianController(BaseCRUDController):
             joins=[(Branch, Branch.branch_id==Aesthetician.branch_id)]
         )
     
+    
     def get_aesthetician_name(self):
         try:
             
