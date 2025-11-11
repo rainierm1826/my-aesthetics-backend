@@ -219,15 +219,14 @@ class AppointmentAnalyticsController:
         query = db.session.query(
             func.concat(Aesthetician.first_name, " ", func.coalesce(Aesthetician.middle_initial, ""), " ", Aesthetician.last_name).label("aesthetician"), 
             Aesthetician.average_rate
-        ).group_by(Aesthetician.aesthetician_id)
-        
+        ).filter(Aesthetician.average_rate.isnot(None)).group_by(Aesthetician.aesthetician_id)
         query = FilterAnalyticsController.apply_not_deleted(query, Aesthetician)
         query = BasicFilterAnalyticsController.apply_filters_from_request(query, Aesthetician)
         query = query.order_by(desc(Aesthetician.average_rate)).limit(10)
         return [dict(row._mapping) for row in query.all()]
 
     def top_rated_service(self):
-        query = db.session.query(Service.service_name, Service.average_rate).group_by(Service.service_id)
+        query = db.session.query(Service.service_name, Service.average_rate).filter(Service.average_rate.isnot(None)).group_by(Service.service_id)
         query = FilterAnalyticsController.apply_not_deleted(query, Service)        
         query = BasicFilterAnalyticsController.apply_filters_from_request(query, Service)
         query = query.order_by(desc(Service.average_rate)).limit(10)

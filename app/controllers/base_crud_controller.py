@@ -260,11 +260,11 @@ class BaseCRUDController:
         if sort:
             field_name, direction = sort.split(":")
             column = self.sortable_fields.get(field_name)
-            if column:
+            if column is not None:
                 if direction == "asc":
-                    query = query.order_by(asc(column))
-                if direction == "desc":
-                    query = query.order_by(desc(column))
+                    query = query.order_by(asc(column).nullslast())
+                elif direction == "desc":
+                    query = query.order_by(desc(column).nullslast())
         return query
             
     def _apply_joins(self, query):

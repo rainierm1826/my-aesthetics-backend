@@ -6,6 +6,9 @@ load_dotenv()
 
 
 class Config:
+    # Debug mode
+    DEBUG = os.getenv("FLASK_DEBUG", "True") == "True"
+    
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
