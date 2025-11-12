@@ -41,13 +41,13 @@ class AnalyticsSummaryController:
         result = query.scalar() or 0
         return round(result, 2)
     
-    def total_voucher_usage(self):
-        query = db.session.query(func.count(Appointment.appointment_id)).filter(
-            Appointment.status=="completed",
-            Appointment.voucher_code_snapshot.isnot(None)
+    def cancellation_loss(self):
+        query = db.session.query(func.sum(Appointment.to_pay)).filter(
+            Appointment.status=="cancelled"
         )
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
-        return query.scalar() or 0
+        result = query.scalar() or 0
+        return round(result, 2)
     
     def avarage_service_rating(self):
         query = db.session.query(func.avg(Service.average_rate))
@@ -252,6 +252,8 @@ class AnalyticsSummaryController:
                 func.round(func.avg(daily_counts.c.daily_count)).label("daily_average")
             )
             .group_by(daily_counts.c.branch)
+            .order_by(func.avg(daily_counts.c.daily_count).desc())
+            .limit(4)
         )
 
         return [dict(row._mapping) for row in query.all()]

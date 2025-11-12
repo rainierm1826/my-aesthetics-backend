@@ -47,7 +47,7 @@ def get_sales_summary():
         "total_revenue": summary_controller.total_revenue(),
         "average_transaction_value": summary_controller.average_transaction_value(),
         "total_discount_given": summary_controller.total_discount_given(),
-        "total_voucher_usage": summary_controller.total_voucher_usage(),
+        "cancellation_loss": summary_controller.cancellation_loss(),
     })
 
 
