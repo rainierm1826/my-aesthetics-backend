@@ -79,14 +79,44 @@ class AuthController(BaseCRUDController):
         
             auth = Auth.query.filter_by(email=data["email"]).first()
             
-            if auth and not auth.isDeleted:
-                return jsonify({"status": False, "message": "Email already exists"}), 409
-
             if not self._validate_credentials(crendetials=data):
                 return jsonify({"status": False, "message": "Missing email or password"}), 404
+            
+            # Check if email exists and if both auth AND admin are not deleted
+            if auth:
+                admin = Admin.query.filter_by(account_id=auth.account_id).first()
+                
+                # Block signup only if auth is not deleted AND (no admin OR admin is not deleted)
+                if not auth.isDeleted and (not admin or not admin.isDeleted):
+                    return jsonify({"status": False, "message": "Email already exists"}), 409
 
             email = data.pop("email")
             password = data.pop("password")
+            
+            # If email was deleted (either auth.isDeleted or admin.isDeleted), reactivate the account
+            if auth:
+                # Reactivate the auth account
+                auth.password = password
+                auth.isDeleted = False
+                auth.is_verified = True
+                auth.role_id = "2"  # Ensure it's set to admin role
+                
+                # Find and reactivate or update the admin record
+                admin = Admin.query.filter_by(account_id=auth.account_id).first()
+                if admin:
+                    # Update existing admin with new data
+                    for key, value in data.items():
+                        setattr(admin, key, value)
+                    admin.isDeleted = False
+                else:
+                    # Create new admin record if it doesn't exist
+                    admin = Admin(account_id=auth.account_id, **data)
+                    db.session.add(admin)
+                
+                db.session.commit()
+                return jsonify({"status": True, "message": "Admin account reactivated successfully", "auth": auth.to_dict()}), 201
+            
+            # Create new auth and admin records
             new_auth = Auth(email=email, password=password, role_id="2")
             db.session.add(new_auth)
             db.session.flush()
