@@ -8,11 +8,6 @@ sys.stdout.reconfigure(line_buffering=True)
 app = create_app()
 
 if __name__ == "__main__":
-    print("=" * 50)
-    print("Starting Flask application...")
-    print(f"Debug mode: {app.config.get('DEBUG')}")
-    print(f"Environment: {app.config.get('ENV', 'development')}")
-    print("=" * 50)
     
     # Development
     if app.config.get('DEBUG'):

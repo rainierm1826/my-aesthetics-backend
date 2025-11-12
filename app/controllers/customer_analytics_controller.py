@@ -10,6 +10,98 @@ class CustomerAnalyticsController:
     def __init__(self):
         pass
 
+    def total_customers(self):
+        """Get total count of all customers (online + walk-in)"""
+        online_customers = db.session.query(func.count(User.user_id)).filter(
+            User.isDeleted == False
+        ).scalar() or 0
+        
+        walkin_customers = db.session.query(func.count(WalkIn.walk_in_id)).filter(
+            WalkIn.isDeleted == False
+        ).scalar() or 0
+        
+        return online_customers + walkin_customers
+
+    def active_customers(self, days=30):
+        """Get count of customers with appointments in last X days"""
+        cutoff_date = datetime.now() - timedelta(days=days)
+        
+        # Get unique online customers with recent appointments
+        online_active = db.session.query(func.count(func.distinct(Appointment.user_id))).filter(
+            Appointment.user_id.isnot(None),
+            Appointment.isDeleted == False,
+            Appointment.created_at >= cutoff_date
+        ).scalar() or 0
+        
+        # Get unique walk-in customers with recent appointments
+        walkin_active = db.session.query(func.count(func.distinct(Appointment.walk_in_id))).filter(
+            Appointment.walk_in_id.isnot(None),
+            Appointment.isDeleted == False,
+            Appointment.created_at >= cutoff_date
+        ).scalar() or 0
+        
+        return online_active + walkin_active
+
+    def customer_retention_rate(self):
+        """Calculate percentage of customers with 2+ completed appointments"""
+        # Online customers with 2+ completed appointments
+        online_repeat = db.session.query(
+            Appointment.user_id
+        ).filter(
+            Appointment.user_id.isnot(None),
+            Appointment.isDeleted == False,
+            Appointment.status == "completed"
+        ).group_by(Appointment.user_id).having(
+            func.count(Appointment.appointment_id) >= 2
+        ).count()
+        
+        # Walk-in customers with 2+ completed appointments
+        walkin_repeat = db.session.query(
+            Appointment.walk_in_id
+        ).filter(
+            Appointment.walk_in_id.isnot(None),
+            Appointment.isDeleted == False,
+            Appointment.status == "completed"
+        ).group_by(Appointment.walk_in_id).having(
+            func.count(Appointment.appointment_id) >= 2
+        ).count()
+        
+        total_repeat = online_repeat + walkin_repeat
+        total_customers = self.total_customers()
+        
+        if total_customers == 0:
+            return 0
+        
+        return round((total_repeat / total_customers) * 100, 2)
+
+    def average_customer_lifetime_value(self):
+        """Calculate average total spending per customer"""
+        # Total revenue from online customers
+        online_revenue = db.session.query(
+            func.sum(Appointment.to_pay)
+        ).filter(
+            Appointment.user_id.isnot(None),
+            Appointment.isDeleted == False,
+            Appointment.status == "completed"
+        ).scalar() or 0
+        
+        # Total revenue from walk-in customers
+        walkin_revenue = db.session.query(
+            func.sum(Appointment.to_pay)
+        ).filter(
+            Appointment.walk_in_id.isnot(None),
+            Appointment.isDeleted == False,
+            Appointment.status == "completed"
+        ).scalar() or 0
+        
+        total_revenue = online_revenue + walkin_revenue
+        total_customers = self.total_customers()
+        
+        if total_customers == 0:
+            return 0
+        
+        return round(total_revenue / total_customers, 2)
+
     def customer_detail(self):
         """Get detailed analytics for a specific customer"""
         customer_id = request.args.get("customer_id")
