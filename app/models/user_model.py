@@ -6,7 +6,7 @@ from .base_mixin import SoftDeleteMixin
 from ..helper.functions import generate_id
 
 class User(db.Model, SoftDeleteMixin):
-    user_id = db.Column(db.String(255), primary_key=True, default=generate_id("MY"))
+    user_id = db.Column(db.String(255), primary_key=True, default=lambda: generate_id("MY"))
     account_id = db.Column(db.String(255), db.ForeignKey("auth.account_id"), nullable=False)
     first_name = db.Column(db.String(255))
     last_name = db.Column(db.String(255))

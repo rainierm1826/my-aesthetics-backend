@@ -70,6 +70,7 @@ class AuthController(BaseCRUDController):
             return jsonify({"status": True, "message": "OTP sent to email successfully", "auth":new_auth.to_dict()})
                 
         except Exception as e:
+            print("error: ", str(e))
             db.session.rollback()
             return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
     
