@@ -412,7 +412,8 @@ class AppointmentController(BaseCRUDController):
                 return jsonify({"status": False, "message": "voucher does not exist"}), 404
             
             # Check if voucher is expired (use naive datetime to match database)
-            now = datetime.now()
+            philippines_tz = pytz.timezone('Asia/Manila')
+            now = datetime.now(philippines_tz).replace(tzinfo=None)  
             if now < voucher.valid_from:
                 return jsonify({"status": False, "message": "voucher is not yet valid"}), 400
             if now > voucher.valid_until:
