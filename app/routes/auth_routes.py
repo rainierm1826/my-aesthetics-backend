@@ -1,7 +1,6 @@
 from flask import Blueprint
 from ..controllers.auth_controller import AuthController
 from flask_jwt_extended import jwt_required
-from ..helper.decorators import access_control
 
 auth_bp = Blueprint("auth", __name__)
 auth_controller = AuthController()
