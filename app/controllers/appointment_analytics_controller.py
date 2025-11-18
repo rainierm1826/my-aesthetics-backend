@@ -208,7 +208,7 @@ class AppointmentAnalyticsController:
     
     def appointments_status(self):
         params = FilterAnalyticsController.get_filter_params()
-        query = db.session.query(Appointment.status, func.count(Appointment.appointment_id).label("count")).group_by(Appointment.status)
+        query = db.session.query(Appointment.status, func.count(Appointment.appointment_id).label("count")).filter(Appointment.status.in_(["completed", "cancelled"])).group_by(Appointment.status)
         query = FilterAnalyticsController.apply_filter_branch(query, params["branch_id"])
         query = FilterAnalyticsController.apply_filter_date(query, params["month"], params["year"])
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
