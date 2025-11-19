@@ -416,7 +416,8 @@ class AppointmentController(BaseCRUDController):
             now = datetime.now(philippines_tz).replace(tzinfo=None)  
             if now < voucher.valid_from:
                 return jsonify({"status": False, "message": "voucher is not yet valid"}), 400
-            if now > voucher.valid_until:
+            end_of_day = voucher.valid_until.replace(hour=23, minute=59, second=59)
+            if now > end_of_day:
                 return jsonify({"status": False, "message": "voucher has expired"}), 400
             
             # Check if voucher has quantity left
