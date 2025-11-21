@@ -9,11 +9,10 @@ from ..models.branch_model import Branch
 from ..models.aesthetician_model import Aesthetician
 from ..models.service_model import Service
 from ..models.voucher_model import Voucher
-from sqlalchemy import func, asc
+from sqlalchemy import func, asc, and_
 from datetime import  datetime, timedelta
 import pytz
 from ..socket_events import emit_new_appointment, emit_appointment_updated, emit_appointment_deleted
-
 
 class AppointmentController(BaseCRUDController):
     def __init__(self):
@@ -176,7 +175,6 @@ class AppointmentController(BaseCRUDController):
                 Aesthetician.aesthetician_id
             )
 
-
         return jsonify({"status": True, "message": "appointment updated successfully"}), 200
 
     # used by owner or admin
@@ -241,19 +239,85 @@ class AppointmentController(BaseCRUDController):
                 # check if user exists
                 if not user:
                     return jsonify({"status": False, "message": "user not found"}), 404
-                # check if appointment already exists
-                pending_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "pending", Appointment.isDeleted==False).first()
+                # check if appointment for the same service already exists
+                service_id = data.get("service_id")
+                pending_appointment = Appointment.query.filter(
+                    Appointment.user_id==user.user_id,
+                    Appointment.service_id==service_id,
+                    Appointment.status == "pending",
+                    Appointment.isDeleted==False
+                ).first()
                 if pending_appointment:
-                    return jsonify({"status": False, "message": "Appointment already exists"}), 400
-                # check if user is in waiting list
-                waiting_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "waiting", Appointment.isDeleted==False).first()
+                    return jsonify({"status": False, "message": "You already have a pending appointment for this service"}), 400
+
+                # check if user is in waiting list for the same service
+                waiting_appointment = Appointment.query.filter(
+                    Appointment.user_id==user.user_id,
+                    Appointment.service_id==service_id,
+                    Appointment.status == "waiting",
+                    Appointment.isDeleted==False
+                ).first()
                 if waiting_appointment:
-                    return jsonify({"status": False, "message": "You are in waiting list"}), 400
-                
-                on_process_appointment = Appointment.query.filter(Appointment.user_id==user.user_id, Appointment.status == "on-process", Appointment.isDeleted==False).first()
+                    return jsonify({"status": False, "message": "You are in the waiting list for this service"}), 400
+
+                # check if user is in process list for the same service
+                on_process_appointment = Appointment.query.filter(
+                    Appointment.user_id==user.user_id,
+                    Appointment.service_id==service_id,
+                    Appointment.status == "on-process",
+                    Appointment.isDeleted==False
+                ).first()
                 if on_process_appointment:
-                    return jsonify({"status": False, "message": "You are in process list"}), 400  
+                    return jsonify({"status": False, "message": "You are in process list for this service"}), 400  
                 
+                # Prevent overlapping appointments for the user (any overlap, not just exact match)
+                # Use service duration (int, in minutes) to get end_time
+                try:
+                    new_date = datetime.strptime(data.get("date"), "%Y-%m-%d").date()
+                    new_start_time = datetime.strptime(data.get("start_time"), "%H:%M").time()
+                except Exception:
+                    return jsonify({"status": False, "message": "Invalid date or time format"}), 400
+
+                # Get duration in minutes (int)
+                service = Service.query.get(data.get("service_id"))
+                duration = 60
+                if service and hasattr(service, "duration") and service.duration:
+                    try:
+                        duration = int(service.duration)
+                    except Exception:
+                        duration = 60
+
+                new_start_dt = datetime.combine(new_date, new_start_time)
+                new_end_dt = new_start_dt + timedelta(minutes=duration)
+
+                user_appointments = Appointment.query.filter(
+                    Appointment.user_id==user.user_id,
+                    Appointment.isDeleted==False,
+                    Appointment.status.in_(["waiting", "on-process", "pending"]),
+                    func.date(Appointment.start_time) == new_date
+                ).all()
+
+                for apt in user_appointments:
+                    apt_start = apt.start_time
+                    if isinstance(apt_start, str):
+                        try:
+                            apt_start = datetime.strptime(apt_start, "%Y-%m-%d %H:%M:%S")
+                        except Exception:
+                            continue
+                    if not isinstance(apt_start, datetime):
+                        continue
+                    if apt_start.tzinfo is not None:
+                        apt_start = apt_start.replace(tzinfo=None)
+                    apt_duration = getattr(apt, "duration", 60) or 60
+                    try:
+                        apt_duration = int(apt_duration)
+                    except Exception:
+                        apt_duration = 60
+                    apt_end = apt_start + timedelta(minutes=apt_duration)
+                    # Check for overlap
+                    if new_start_dt < apt_end and new_end_dt > apt_start:
+                        return jsonify({"status": False, "message": "You already have an overlapping appointment at this date and time"}), 400
+
                 new_appointment = self._create_appointment(data, user_id=user.user_id, is_walk_in=False)
                 return new_appointment
         except Exception as e:
