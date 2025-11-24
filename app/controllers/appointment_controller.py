@@ -280,12 +280,12 @@ class AppointmentController(BaseCRUDController):
 
                 # Get duration in minutes (int)
                 service = Service.query.get(data.get("service_id"))
-                duration = 60
+                duration = 30
                 if service and hasattr(service, "duration") and service.duration:
                     try:
                         duration = int(service.duration)
                     except Exception:
-                        duration = 60
+                        duration = 30
 
                 new_start_dt = datetime.combine(new_date, new_start_time)
                 new_end_dt = new_start_dt + timedelta(minutes=duration)
@@ -688,6 +688,12 @@ class AppointmentController(BaseCRUDController):
             service_id = request.args.get("service_id")
             date_str = request.args.get("date")
 
+            # Get the authenticated user (if any)
+            identity = get_jwt_identity()
+            user = None
+            if identity:
+                user = User.query.filter_by(account_id=identity).first()
+
             # Validate required parameters
             if not all([branch_id, service_id, date_str]):
                 return jsonify({"status": False, "message": "Missing required parameters: branch_id, service_id, date"})
@@ -743,6 +749,15 @@ class AppointmentController(BaseCRUDController):
                 func.date(Appointment.start_time) == date
             ).all()
 
+            # Fetch all active appointments for the user on the given date (for self-conflict)
+            user_appointments = []
+            if user:
+                user_appointments = Appointment.query.filter(
+                    Appointment.user_id == user.user_id,
+                    Appointment.isDeleted == False,
+                    Appointment.status.in_(["waiting", "on-process", "pending"]),
+                    func.date(Appointment.start_time) == date
+                ).all()
             # If aesthetician is specified, fetch their appointments
             aesthetician_appointments = []
             if aesthetician_id:
@@ -772,73 +787,84 @@ class AppointmentController(BaseCRUDController):
                 if current < now:
                     status = "past"
                 else:
-                    # Check if aesthetician is busy at this time (if aesthetician_id provided)
-                    aesthetician_busy = False
-                    if aesthetician_id and aesthetician_appointments:
-                        for appointment in aesthetician_appointments:
-                            if not appointment.duration or appointment.duration <= 0:
-                                continue
-                            
-                            existing_start = appointment.start_time
-                            
-                            # Handle string conversion
-                            if isinstance(existing_start, str):
+                    # Check for self-conflict (user has overlapping appointment at this time)
+                    self_conflict = False
+                    if user and user_appointments:
+                        for apt in user_appointments:
+                            apt_start = apt.start_time
+                            if isinstance(apt_start, str):
                                 try:
-                                    existing_start = datetime.strptime(existing_start, "%Y-%m-%d %H:%M:%S")
-                                except ValueError:
+                                    apt_start = datetime.strptime(apt_start, "%Y-%m-%d %H:%M:%S")
+                                except Exception:
                                     continue
-                            
-                            if not isinstance(existing_start, datetime):
+                            if not isinstance(apt_start, datetime):
                                 continue
-                            
-                            if existing_start.tzinfo is not None:
-                                existing_start = existing_start.replace(tzinfo=None)
-                            
-                            if existing_start.date() != date:
-                                existing_start = datetime.combine(date, existing_start.time())
-                            
-                            existing_end = existing_start + timedelta(minutes=appointment.duration)
-                            
+                            if apt_start.tzinfo is not None:
+                                apt_start = apt_start.replace(tzinfo=None)
+                            apt_duration = getattr(apt, "duration", 60) or 60
+                            try:
+                                apt_duration = int(apt_duration)
+                            except Exception:
+                                apt_duration = 60
+                            apt_end = apt_start + timedelta(minutes=apt_duration)
                             # Check for overlap
-                            if current < existing_end and slot_end > existing_start:
-                                aesthetician_busy = True
+                            if current < apt_end and slot_end > apt_start:
+                                self_conflict = True
                                 break
-                    
-                    if aesthetician_busy:
-                        status = "booked"
+                    if self_conflict:
+                        status = "conflict"
                     else:
-                        # Check branch capacity
-                        concurrent_count = 0
-                        for appointment in branch_appointments:
-                            if not appointment.duration or appointment.duration <= 0:
-                                continue
-
-                            existing_start = appointment.start_time
-                            
-                            if isinstance(existing_start, str):
-                                try:
-                                    existing_start = datetime.strptime(existing_start, "%Y-%m-%d %H:%M:%S")
-                                except ValueError:
+                        # Check if aesthetician is busy at this time (if aesthetician_id provided)
+                        aesthetician_busy = False
+                        if aesthetician_id and aesthetician_appointments:
+                            for appointment in aesthetician_appointments:
+                                if not appointment.duration or appointment.duration <= 0:
                                     continue
-
-                            if not isinstance(existing_start, datetime):
-                                continue
-
-                            if existing_start.tzinfo is not None:
-                                existing_start = existing_start.replace(tzinfo=None)
-
-                            if existing_start.date() != date:
-                                existing_start = datetime.combine(date, existing_start.time())
-
-                            existing_end = existing_start + timedelta(minutes=appointment.duration)
-
-                            # Check for overlap
-                            if current < existing_end and slot_end > existing_start:
-                                concurrent_count += 1
-
-                        # If concurrent appointments >= slot_capacity, mark as booked
-                        if concurrent_count >= slot_capacity:
+                                existing_start = appointment.start_time
+                                # Handle string conversion
+                                if isinstance(existing_start, str):
+                                    try:
+                                        existing_start = datetime.strptime(existing_start, "%Y-%m-%d %H:%M:%S")
+                                    except ValueError:
+                                        continue
+                                if not isinstance(existing_start, datetime):
+                                    continue
+                                if existing_start.tzinfo is not None:
+                                    existing_start = existing_start.replace(tzinfo=None)
+                                if existing_start.date() != date:
+                                    existing_start = datetime.combine(date, existing_start.time())
+                                existing_end = existing_start + timedelta(minutes=appointment.duration)
+                                # Check for overlap
+                                if current < existing_end and slot_end > existing_start:
+                                    aesthetician_busy = True
+                                    break
+                        if aesthetician_busy:
                             status = "booked"
+                        else:
+                            # Check branch capacity
+                            concurrent_count = 0
+                            for appointment in branch_appointments:
+                                if not appointment.duration or appointment.duration <= 0:
+                                    continue
+                                existing_start = appointment.start_time
+                                if isinstance(existing_start, str):
+                                    try:
+                                        existing_start = datetime.strptime(existing_start, "%Y-%m-%d %H:%M:%S")
+                                    except ValueError:
+                                        continue
+                                if not isinstance(existing_start, datetime):
+                                    continue
+                                if existing_start.tzinfo is not None:
+                                    existing_start = existing_start.replace(tzinfo=None)
+                                if existing_start.date() != date:
+                                    existing_start = datetime.combine(date, existing_start.time())
+                                existing_end = existing_start + timedelta(minutes=appointment.duration)
+                                # Check for overlap
+                                if current < existing_end and slot_end > existing_start:
+                                    concurrent_count += 1
+                            # If concurrent appointments >= slot_capacity, mark as booked
+                            if concurrent_count >= slot_capacity:
+                                status = "booked"
 
                 # Add slot with status
                 slot_range = {

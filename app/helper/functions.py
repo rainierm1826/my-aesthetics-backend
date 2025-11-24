@@ -43,7 +43,7 @@ def generate_voucher_code():
 
 def generate_id(prefix):
     year = datetime.now(timezone.utc).strftime("%y")  
-    random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    random_chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     return f"{prefix}-{year}-{random_chars}"
 
 def generate_otp():

@@ -56,5 +56,6 @@ def get_reviews():
     )
 
 @appointment_bp.route("/available-slots", methods=["GET"])
+@jwt_required()
 def get_available_slots():
     return appointment_controller.get_available_slots()
