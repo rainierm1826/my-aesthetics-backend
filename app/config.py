@@ -19,9 +19,11 @@ class Config:
     JWT_COOKIE_CSRF_PROTECT = False
     JWT_ACCESS_COOKIE_NAME = "access_token"
     JWT_REFRESH_COOKIE_NAME = "refresh_token"
-    # Allow cookies to be sent with cross-origin requests (important for production)
-    # Use Lax instead of None to avoid third-party cookie blocking in browsers
-    JWT_COOKIE_SAMESITE = "Lax"
+    # SameSite: use "None" when frontend and backend are on different domains (Render)
+    # Keep "Lax" for same-site setups. Controlled via ENV var with default "Lax".
+    JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "Lax")
+    # Optional cookie domain to scope JWT cookies
+    JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN")
     # Token expiration times - 7 days for both access and refresh tokens
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
