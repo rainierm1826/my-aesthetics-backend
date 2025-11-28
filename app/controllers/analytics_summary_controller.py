@@ -2,6 +2,7 @@ from ..controllers.filter_analytics_controller import FilterAnalyticsController
 from ..extension import db
 from sqlalchemy import func, cast, Date
 from ..models.appointment_model import Appointment
+from ..models.appointment_services_model import AppointmentService
 from ..models.service_model import Service
 from ..models.aesthetician_model import Aesthetician
 from ..models.branch_model import Branch
@@ -17,7 +18,7 @@ class AnalyticsSummaryController:
     def total_appointments(self):
         query = db.session.query(func.count(Appointment.appointment_id)).filter(Appointment.status=="completed")
         query = FilterAnalyticsController.apply_is_completed(query)
-        query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
+        query = FilterAnalyticsController.apply_not_deleted(query, AppointmentService)
         return query.scalar() or 0
     
     def total_revenue(self):
@@ -33,10 +34,11 @@ class AnalyticsSummaryController:
         return round(total_revenue / total_appointments, 2)
     
     def total_discount_given(self):
-        query = db.session.query(func.sum(Appointment.discount_snapshot)).filter(
-            Appointment.status=="completed",
-            Appointment.discount_snapshot.isnot(None)
-        )
+        from ..models.appointment_services_model import AppointmentService
+        # Join AppointmentService to Appointment for filtering
+        query = db.session.query(func.sum(AppointmentService.discount_snapshot)).join(
+            Appointment, AppointmentService.appointment_id == Appointment.appointment_id
+        ).filter(Appointment.status=="completed", AppointmentService.discount_snapshot.isnot(None))
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         result = query.scalar() or 0
         return round(result, 2)
@@ -50,8 +52,12 @@ class AnalyticsSummaryController:
         return round(result, 2)
     
     def avarage_service_rating(self):
-        query = db.session.query(func.avg(Service.average_rate))
-        query = FilterAnalyticsController.apply_not_deleted(query, Service)
+        from ..models.appointment_services_model import AppointmentService
+        # Join AppointmentService to Appointment for filtering
+        query = db.session.query(func.avg(AppointmentService.service_rating)).join(
+            Appointment, AppointmentService.appointment_id == Appointment.appointment_id
+        ).filter(Appointment.status=="completed", AppointmentService.service_rating.isnot(None))
+        query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         result = query.scalar()
         return round(result, 2) if result is not None else 0
     

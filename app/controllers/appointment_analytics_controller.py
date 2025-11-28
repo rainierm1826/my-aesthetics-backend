@@ -18,7 +18,6 @@ from ..helper.linear_regression_model import linear_regression_model
 class AppointmentAnalyticsController:
     def __init__(self):
         pass
-    
 
     def appointment_overtime(self):
         group_by = request.args.get("group-by", default="year")
@@ -145,27 +144,32 @@ class AppointmentAnalyticsController:
             return {"metrics": {"MAE": None, "MSE": None, "R2": None}}
     
     def appointments_by_service_category(self):
-        query = db.session.query(Appointment.category_snapshot.label("category"), func.count(Appointment.appointment_id).label("count")).group_by(Appointment.category_snapshot)
+        from ..models.appointment_services_model import AppointmentService
+        # Join AppointmentService to Appointment for filtering
+        query = db.session.query(
+            AppointmentService.category_snapshot.label("category"),
+            func.count(AppointmentService.id).label("count")
+        ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
         query = FilterAnalyticsController.apply_is_completed(query)
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         query = FilterAnalyticsController.apply_filters_from_request(query)
+        query = query.group_by(AppointmentService.category_snapshot)
         return [dict(row._mapping) for row in query.all()]
     
     def appointments_by_service(self):
+        from ..models.appointment_services_model import AppointmentService
+        # Join AppointmentService to Appointment for filtering
         query = (
             db.session.query(
-                Service.service_name.label("service"),  # live service name
-                func.count(Appointment.appointment_id).label("count")
+                AppointmentService.service_name_snapshot.label("service"),
+                func.count(AppointmentService.id).label("count")
             )
-            .join(Service, Appointment.service_id == Service.service_id)
-            .group_by(Service.service_name)
+            .join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
         )
-
         query = FilterAnalyticsController.apply_is_completed(query)
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         query = FilterAnalyticsController.apply_filters_from_request(query)
-        query = query.limit(10)
-
+        query = query.group_by(AppointmentService.service_name_snapshot).limit(10)
         return [dict(row._mapping) for row in query.all()]
 
     
@@ -188,20 +192,20 @@ class AppointmentAnalyticsController:
 
     
     def appointments_by_aesthetician(self):
+        from ..models.appointment_services_model import AppointmentService
         query = (
-        db.session.query(
-            func.concat(Aesthetician.first_name, " ", Aesthetician.middle_initial, " ", Aesthetician.last_name).label("aesthetician"),
-            func.count(Appointment.appointment_id).label("count")
+            db.session.query(
+                func.concat(Aesthetician.first_name, " ", Aesthetician.middle_initial, " ", Aesthetician.last_name).label("aesthetician"),
+                func.count(AppointmentService.id).label("count")
+            )
+            .join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            .join(Aesthetician, AppointmentService.aesthetician_id == Aesthetician.aesthetician_id)
+            .group_by(Aesthetician.first_name, Aesthetician.last_name, Aesthetician.middle_initial)
         )
-        .join(Aesthetician, Appointment.aesthetician_id == Aesthetician.aesthetician_id)
-        .group_by(Aesthetician.first_name, Aesthetician.last_name, Aesthetician.middle_initial)
-        )
-
         query = FilterAnalyticsController.apply_is_completed(query)
         query = FilterAnalyticsController.apply_not_deleted(query, Appointment)
         query = FilterAnalyticsController.apply_filters_from_request(query)
         query = query.limit(10)
-
         return [dict(row._mapping) for row in query.all()]
 
     

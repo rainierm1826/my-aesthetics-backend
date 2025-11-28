@@ -55,7 +55,7 @@ def get_reviews():
         branch_id=branch_id
     )
 
-@appointment_bp.route("/available-slots", methods=["GET"])
+@appointment_bp.route("/available-slots", methods=["POST"])
 @jwt_required()
 def get_available_slots():
     return appointment_controller.get_available_slots()

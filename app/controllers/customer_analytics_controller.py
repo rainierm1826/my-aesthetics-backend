@@ -1,10 +1,12 @@
 from ..extension import db
-from sqlalchemy import func, desc, case, and_
+from sqlalchemy import func, desc
 from ..models.user_model import User
 from ..models.walk_in_model import WalkIn
 from ..models.appointment_model import Appointment
 from flask import request, jsonify
 from datetime import datetime, timedelta
+from ..models.appointment_services_model import AppointmentService
+
 
 class CustomerAnalyticsController:
     def __init__(self):
@@ -149,64 +151,71 @@ class CustomerAnalyticsController:
         completed_appointments = len([a for a in appointments if a.status == "completed"])
         cancelled_appointments = len([a for a in appointments if a.status == "cancelled"])
         
-        # Revenue stats
+        # Revenue stats (sum of discounted_price_snapshot from AppointmentService)
         if customer_type == "online":
-            total_spent_query = db.session.query(func.sum(Appointment.to_pay)).filter(
+            total_spent_query = db.session.query(func.sum(AppointmentService.discounted_price_snapshot)).join(
+                Appointment, AppointmentService.appointment_id == Appointment.appointment_id
+            ).filter(
                 Appointment.user_id == customer_id,
                 Appointment.isDeleted == False,
                 Appointment.status == "completed"
             )
         else:
-            total_spent_query = db.session.query(func.sum(Appointment.to_pay)).filter(
+            total_spent_query = db.session.query(func.sum(AppointmentService.discounted_price_snapshot)).join(
+                Appointment, AppointmentService.appointment_id == Appointment.appointment_id
+            ).filter(
                 Appointment.walk_in_id == customer_id,
                 Appointment.isDeleted == False,
                 Appointment.status == "completed"
             )
-        
         total_spent = total_spent_query.scalar() or 0
         average_transaction = total_spent / completed_appointments if completed_appointments > 0 else 0
-        
+
         # Service preferences
         if customer_type == "online":
             favorite_services = db.session.query(
-                Appointment.service_name_snapshot.label("service"),
-                func.count(Appointment.appointment_id).label("count")
-            ).filter(
+                AppointmentService.service_name_snapshot.label("service"),
+                func.count(AppointmentService.id).label("count")
+            ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            favorite_services = favorite_services.filter(
                 Appointment.user_id == customer_id,
                 Appointment.isDeleted == False,
                 Appointment.status == "completed"
-            ).group_by("service").order_by(desc("count")).limit(5)
+            ).group_by(AppointmentService.service_name_snapshot).order_by(desc("count")).limit(5)
         else:
             favorite_services = db.session.query(
-                Appointment.service_name_snapshot.label("service"),
-                func.count(Appointment.appointment_id).label("count")
-            ).filter(
+                AppointmentService.service_name_snapshot.label("service"),
+                func.count(AppointmentService.id).label("count")
+            ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            favorite_services = favorite_services.filter(
                 Appointment.walk_in_id == customer_id,
                 Appointment.isDeleted == False,
                 Appointment.status == "completed"
-            ).group_by("service").order_by(desc("count")).limit(5)
-        
+            ).group_by(AppointmentService.service_name_snapshot).order_by(desc("count")).limit(5)
+
         # Aesthetician preferences
         if customer_type == "online":
             favorite_aestheticians = db.session.query(
-                Appointment.aesthetician_name_snapshot.label("aesthetician"),
-                func.count(Appointment.appointment_id).label("count")
-            ).filter(
+                AppointmentService.aesthetician_name_snapshot.label("aesthetician"),
+                func.count(AppointmentService.id).label("count")
+            ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            favorite_aestheticians = favorite_aestheticians.filter(
                 Appointment.user_id == customer_id,
                 Appointment.isDeleted == False,
                 Appointment.status == "completed"
-            ).group_by("aesthetician").order_by(desc("count")).limit(5)
+            ).group_by(AppointmentService.aesthetician_name_snapshot).order_by(desc("count")).limit(5)
         else:
             favorite_aestheticians = db.session.query(
-                Appointment.aesthetician_name_snapshot.label("aesthetician"),
-                func.count(Appointment.appointment_id).label("count")
-            ).filter(
+                AppointmentService.aesthetician_name_snapshot.label("aesthetician"),
+                func.count(AppointmentService.id).label("count")
+            ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            favorite_aestheticians = favorite_aestheticians.filter(
                 Appointment.walk_in_id == customer_id,
                 Appointment.isDeleted == False,
                 Appointment.status == "completed"
-            ).group_by("aesthetician").order_by(desc("count")).limit(5)
-        
-        # Branch preferences
+            ).group_by(AppointmentService.aesthetician_name_snapshot).order_by(desc("count")).limit(5)
+
+        # Branch preferences (still from Appointment, as branch is not per service)
         if customer_type == "online":
             favorite_branches = db.session.query(
                 Appointment.branch_name_snapshot.label("branch"),
@@ -215,7 +224,7 @@ class CustomerAnalyticsController:
                 Appointment.user_id == customer_id,
                 Appointment.isDeleted == False,
                 Appointment.status == "completed"
-            ).group_by("branch").order_by(desc("count")).limit(5)
+            ).group_by(Appointment.branch_name_snapshot).order_by(desc("count")).limit(5)
         else:
             favorite_branches = db.session.query(
                 Appointment.branch_name_snapshot.label("branch"),
@@ -224,66 +233,77 @@ class CustomerAnalyticsController:
                 Appointment.walk_in_id == customer_id,
                 Appointment.isDeleted == False,
                 Appointment.status == "completed"
-            ).group_by("branch").order_by(desc("count")).limit(5)
-        
-        # Last appointment (exclude ones with invalid 1900-01-01 dates)
+            ).group_by(Appointment.branch_name_snapshot).order_by(desc("count")).limit(5)
+
+        # Last appointment (by service start_time)
+        # from ..models.appointment_services_model import AppointmentService  # Removed redundant import to fix UnboundLocalError
         if customer_type == "online":
-            last_appointment = Appointment.query.filter(
+            last_appointment = db.session.query(
+                AppointmentService.start_time,
+                Appointment.created_at
+            ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            last_appointment = last_appointment.filter(
                 Appointment.user_id == customer_id,
                 Appointment.isDeleted == False
-            ).order_by(desc(Appointment.start_time)).first()
+            ).order_by(desc(AppointmentService.start_time)).first()
         else:
-            last_appointment = Appointment.query.filter(
+            last_appointment = db.session.query(
+                AppointmentService.start_time,
+                Appointment.created_at
+            ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            last_appointment = last_appointment.filter(
                 Appointment.walk_in_id == customer_id,
                 Appointment.isDeleted == False
-            ).order_by(desc(Appointment.start_time)).first()
-        
+            ).order_by(desc(AppointmentService.start_time)).first()
+
         # Days since last appointment
         days_since_last = None
         if last_appointment:
             try:
                 # Check if start_time is valid (not 1900-01-01)
-                if last_appointment.start_time and last_appointment.start_time > datetime(1950, 1, 1):
-                    appointment_date = last_appointment.start_time.date()
-                elif last_appointment.created_at:
-                    # Fall back to created_at if start_time is invalid
-                    appointment_date = last_appointment.created_at
+                start_time = last_appointment.start_time
+                created_at = last_appointment.created_at
+                if start_time and start_time > datetime(1950, 1, 1):
+                    appointment_date = start_time.date()
+                elif created_at:
+                    appointment_date = created_at
                 else:
                     appointment_date = None
-                
+
                 if appointment_date:
                     today = datetime.now().date()
                     days_diff = (today - appointment_date).days
                     days_since_last = abs(days_diff) if days_diff >= 0 else None
             except Exception as e:
-                # If there's any error in calculation, set to None
                 days_since_last = None
-        
+
         # Appointment timeline (last 10 appointments)
         if customer_type == "online":
             appointment_history = db.session.query(
-                Appointment.appointment_id,
-                Appointment.start_time,
+                AppointmentService.appointment_id,
+                AppointmentService.start_time,
                 Appointment.status,
-                Appointment.service_name_snapshot,
-                Appointment.aesthetician_name_snapshot,
-                Appointment.to_pay
-            ).filter(
+                AppointmentService.service_name_snapshot,
+                AppointmentService.aesthetician_name_snapshot,
+                AppointmentService.discounted_price_snapshot.label("to_pay")
+            ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            appointment_history = appointment_history.filter(
                 Appointment.user_id == customer_id,
                 Appointment.isDeleted == False
-            ).order_by(desc(Appointment.start_time)).limit(10)
+            ).order_by(desc(AppointmentService.start_time)).limit(10)
         else:
             appointment_history = db.session.query(
-                Appointment.appointment_id,
-                Appointment.start_time,
+                AppointmentService.appointment_id,
+                AppointmentService.start_time,
                 Appointment.status,
-                Appointment.service_name_snapshot,
-                Appointment.aesthetician_name_snapshot,
-                Appointment.to_pay
-            ).filter(
+                AppointmentService.service_name_snapshot,
+                AppointmentService.aesthetician_name_snapshot,
+                AppointmentService.discounted_price_snapshot.label("to_pay")
+            ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            appointment_history = appointment_history.filter(
                 Appointment.walk_in_id == customer_id,
                 Appointment.isDeleted == False
-            ).order_by(desc(Appointment.start_time)).limit(10)
+            ).order_by(desc(AppointmentService.start_time)).limit(10)
         
         return jsonify({
             "status": True,
@@ -328,35 +348,37 @@ class CustomerAnalyticsController:
         if not customer_id:
             return jsonify({"status": False, "message": "customer_id required"}), 400
         
+        from ..models.appointment_services_model import AppointmentService
         if customer_type == "online":
             query = db.session.query(
-                Appointment.appointment_id,
-                Appointment.start_time,
+                AppointmentService.appointment_id,
+                AppointmentService.start_time,
                 Appointment.status,
-                Appointment.service_name_snapshot,
-                Appointment.aesthetician_name_snapshot,
+                AppointmentService.service_name_snapshot,
+                AppointmentService.aesthetician_name_snapshot,
                 Appointment.branch_name_snapshot,
-                Appointment.to_pay,
+                AppointmentService.discounted_price_snapshot.label("to_pay"),
                 Appointment.payment_status
-            ).filter(
+            ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            query = query.filter(
                 Appointment.user_id == customer_id,
                 Appointment.isDeleted == False
-            ).order_by(desc(Appointment.start_time))
+            ).order_by(desc(AppointmentService.start_time))
         else:
             query = db.session.query(
-                Appointment.appointment_id,
-                Appointment.start_time,
+                AppointmentService.appointment_id,
+                AppointmentService.start_time,
                 Appointment.status,
-                Appointment.service_name_snapshot,
-                Appointment.aesthetician_name_snapshot,
+                AppointmentService.service_name_snapshot,
+                AppointmentService.aesthetician_name_snapshot,
                 Appointment.branch_name_snapshot,
-                Appointment.to_pay,
+                AppointmentService.discounted_price_snapshot.label("to_pay"),
                 Appointment.payment_status
-            ).filter(
+            ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            query = query.filter(
                 Appointment.walk_in_id == customer_id,
                 Appointment.isDeleted == False
-            ).order_by(desc(Appointment.start_time))
-        
+            ).order_by(desc(AppointmentService.start_time))
         return jsonify({
             "status": True,
             "appointments": [
@@ -380,29 +402,31 @@ class CustomerAnalyticsController:
         if not customer_id:
             return jsonify({"status": False, "message": "customer_id required"}), 400
         
+        from ..models.appointment_services_model import AppointmentService
         if customer_type == "online":
             query = db.session.query(
-                Appointment.service_name_snapshot.label("service"),
-                func.count(Appointment.appointment_id).label("appointment_count"),
-                func.sum(Appointment.to_pay).label("total_spent"),
-                func.avg(Appointment.to_pay).label("average_spent")
-            ).filter(
+                AppointmentService.service_name_snapshot.label("service"),
+                func.count(AppointmentService.id).label("appointment_count"),
+                func.sum(AppointmentService.discounted_price_snapshot).label("total_spent"),
+                func.avg(AppointmentService.discounted_price_snapshot).label("average_spent")
+            ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            query = query.filter(
                 Appointment.user_id == customer_id,
                 Appointment.isDeleted == False,
                 Appointment.status == "completed"
-            ).group_by("service").order_by(desc("total_spent"))
+            ).group_by(AppointmentService.service_name_snapshot).order_by(desc("total_spent"))
         else:
             query = db.session.query(
-                Appointment.service_name_snapshot.label("service"),
-                func.count(Appointment.appointment_id).label("appointment_count"),
-                func.sum(Appointment.to_pay).label("total_spent"),
-                func.avg(Appointment.to_pay).label("average_spent")
-            ).filter(
+                AppointmentService.service_name_snapshot.label("service"),
+                func.count(AppointmentService.id).label("appointment_count"),
+                func.sum(AppointmentService.discounted_price_snapshot).label("total_spent"),
+                func.avg(AppointmentService.discounted_price_snapshot).label("average_spent")
+            ).join(Appointment, AppointmentService.appointment_id == Appointment.appointment_id)
+            query = query.filter(
                 Appointment.walk_in_id == customer_id,
                 Appointment.isDeleted == False,
                 Appointment.status == "completed"
-            ).group_by("service").order_by(desc("total_spent"))
-        
+            ).group_by(AppointmentService.service_name_snapshot).order_by(desc("total_spent"))
         return jsonify({
             "status": True,
             "spending": [dict(row._mapping) for row in query.all()]
