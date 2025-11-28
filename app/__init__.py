@@ -26,7 +26,7 @@ def create_app():
     api_secret = os.getenv("CLOUDINARY_SECRET_KEY")
 )
 
-    CORS(app, origins=["http://localhost:3000", "https://my-aesthetics-three.vercel.app", "https://myaestheticsbrowstudio.com", "https://www.myaestheticsbrowstudio.com"], supports_credentials=True)
+    CORS(app, origins=["http://localhost:3000", "https://my-aesthetics-three.vercel.app", "https://myaestheticsbrowstudio.com", "https://www.myaestheticsbrowstudio.com", "https://my-aesthetics-frontend.onrender.com"], supports_credentials=True)
 
     from .models.role_model import Role
     from .models.auth_model import Auth
