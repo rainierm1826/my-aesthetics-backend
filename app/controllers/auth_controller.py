@@ -693,7 +693,7 @@ class AuthController(BaseCRUDController):
             "has_access_token": "access_token" in cookies,
             "has_refresh_token": "refresh_token" in cookies,
             "cookies_found": list(cookies.keys()),
-            "cors_origins": ["http://localhost:3000", "https://my-aesthetics-three.vercel.app", "https://myaestheticsbrowstudio.com"],
+            "cors_origins": ["http://localhost:3000", "https://my-aesthetics-three.vercel.app", "https://myaestheticsbrowstudio.com", "https://my-aesthetics-frontend.onrender.com"],
             "cookie_settings": {
                 "secure": is_production,
                 "samesite": "Lax",  # Changed from None to Lax to fix browser compatibility

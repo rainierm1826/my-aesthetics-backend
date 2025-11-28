@@ -21,7 +21,7 @@ class Config:
     JWT_REFRESH_COOKIE_NAME = "refresh_token"
     # SameSite: use "None" when frontend and backend are on different domains (Render)
     # Keep "Lax" for same-site setups. Controlled via ENV var with default "Lax".
-    JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "Lax")
+    JWT_COOKIE_SAMESITE = os.getenv("JWT_COOKIE_SAMESITE", "None")
     # Optional cookie domain to scope JWT cookies
     JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN")
     # Token expiration times - 7 days for both access and refresh tokens
