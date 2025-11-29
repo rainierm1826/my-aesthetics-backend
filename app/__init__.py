@@ -27,7 +27,7 @@ def create_app():
 )
 
     # Configure CORS from environment so we can add/remove origins without code changes
-    cors_origins_env = os.getenv("CORS_ORIGINS", "http://localhost:3000,https://my-aesthetics-three.vercel.app,https://myaestheticsbrowstudio.com,https://www.myaestheticsbrowstudio.com, https://my-aesthetics-frontend.onrender.com")
+    cors_origins_env = os.getenv("CORS_ORIGINS", "http://localhost:3000,https://my-aesthetics-three.vercel.app,https://myaestheticsbrowstudio.com,https://www.myaestheticsbrowstudio.com,https://my-aesthetics-frontend.onrender.com")
     cors_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
     CORS(
         app,

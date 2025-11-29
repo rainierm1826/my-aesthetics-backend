@@ -703,32 +703,33 @@ class AuthController(BaseCRUDController):
     
     def clear_cookies(self):
         """Endpoint to forcefully clear all auth cookies - useful for migration"""
-        import os
-        
-        is_production = os.getenv("ENVIRONMENT", "development") == "production"
-        cookie_secure = is_production
-        cookie_domain = ".myaestheticsbrowstudio.com" if is_production else None
-        
-        response = make_response(jsonify({
-            "status": True,
-            "message": "All auth cookies cleared successfully"
-        }))
-        
-        # Clear with Lax settings (current)
-        response.delete_cookie("access_token", secure=cookie_secure, samesite="Lax", domain=cookie_domain)
-        response.delete_cookie("refresh_token", secure=cookie_secure, samesite="Lax", domain=cookie_domain)
-        
-        # Also clear with None settings (old cookies that might still exist)
-        if is_production:
-            response.delete_cookie("access_token", secure=True, samesite="None", domain=cookie_domain)
-            response.delete_cookie("refresh_token", secure=True, samesite="None", domain=cookie_domain)
-        
-        # Also try without domain (edge case)
-        response.delete_cookie("access_token", secure=cookie_secure, samesite="Lax")
-        response.delete_cookie("refresh_token", secure=cookie_secure, samesite="Lax")
-        
-        if is_production:
-            response.delete_cookie("access_token", secure=True, samesite="None")
-            response.delete_cookie("refresh_token", secure=True, samesite="None")
-        
-        return response
+        try:
+            import os
+            from flask import jsonify, make_response
+
+            is_production = os.getenv("ENVIRONMENT", "development") == "production"
+            cookie_secure = is_production
+            cookie_domain = os.getenv("JWT_COOKIE_DOMAIN") if is_production else None
+
+            response = make_response(jsonify({
+                "status": True,
+                "message": "All auth cookies cleared successfully"
+            }))
+
+            # Clear with current settings (SameSite=None for cross-site)
+            response.delete_cookie("access_token", secure=cookie_secure, samesite="None", domain=cookie_domain)
+            response.delete_cookie("refresh_token", secure=cookie_secure, samesite="None", domain=cookie_domain)
+
+            # Also try without domain (edge case)
+            response.delete_cookie("access_token", secure=cookie_secure, samesite="None")
+            response.delete_cookie("refresh_token", secure=cookie_secure, samesite="None")
+
+            # And legacy Lax cleanup
+            response.delete_cookie("access_token", secure=cookie_secure, samesite="Lax", domain=cookie_domain)
+            response.delete_cookie("refresh_token", secure=cookie_secure, samesite="Lax", domain=cookie_domain)
+            response.delete_cookie("access_token", secure=cookie_secure, samesite="Lax")
+            response.delete_cookie("refresh_token", secure=cookie_secure, samesite="Lax")
+
+            return response
+        except Exception as e:
+            return jsonify({"status": False, "message": "Internal Error", "error": str(e)}), 500
