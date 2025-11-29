@@ -267,7 +267,7 @@ class AuthController(BaseCRUDController):
             is_production = os.getenv("ENVIRONMENT", "development") == "production"
             cookie_secure = is_production
             # Use Lax instead of None to avoid third-party cookie blocking in browsers
-            cookie_samesite = "Lax"
+            cookie_samesite = "None"
             
             # Set domain for cookie sharing across subdomains
             # In production: .myaestheticsbrowstudio.com allows cookies to work on both
@@ -319,7 +319,7 @@ class AuthController(BaseCRUDController):
             is_production = os.getenv("ENVIRONMENT", "development") == "production"
             cookie_secure = is_production
             # Use Lax instead of None to avoid third-party cookie blocking in browsers
-            cookie_samesite = "Lax"
+            cookie_samesite = "None"
             cookie_domain = ".myaestheticsbrowstudio.com" if is_production else None
             
             # Delete cookies with the same settings they were set with
@@ -617,7 +617,7 @@ class AuthController(BaseCRUDController):
             import os
             is_production = os.getenv("ENVIRONMENT", "development") == "production"
             cookie_secure = is_production
-            cookie_samesite = "Lax"
+            cookie_samesite = "None"
             cookie_domain = ".myaestheticsbrowstudio.com" if is_production else None
             
             # Update the access_token cookie
@@ -696,7 +696,7 @@ class AuthController(BaseCRUDController):
             "cors_origins": ["http://localhost:3000", "https://my-aesthetics-three.vercel.app", "https://myaestheticsbrowstudio.com", "https://my-aesthetics-frontend.onrender.com"],
             "cookie_settings": {
                 "secure": is_production,
-                "samesite": "Lax",  # Changed from None to Lax to fix browser compatibility
+                "samesite": "None",  
                 "httponly": True
             }
         }), 200

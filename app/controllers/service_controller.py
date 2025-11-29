@@ -79,11 +79,74 @@ class ServiceController(BaseCRUDController):
         data["price"] = float(request.form.get("price"))
         data['is_sale'] = request.form.get("is_sale", str(data.get('is_sale', False))) == "true"
         data["discount"] = float(request.form.get("discount"))
+
+        # Interpret 'all' or empty branch as global (None)
+        if data.get('branch_id') in ('all', '', None):
+            data['branch_id'] = None
         
         new_service = Service(**data)
         
         db.session.add(new_service)
         return new_service
+
+    def _custom_update(self, data):
+        service = Service.query.get(data.get('service_id'))
+        if not service:
+            return jsonify({"status": False, "message": "service not found"}), 404
+
+        # Map form values
+        price_raw = request.form.get('price')
+        if price_raw is not None:
+            try:
+                service.price = float(price_raw)
+            except ValueError:
+                pass
+
+        discount_raw = request.form.get('discount')
+        if discount_raw is not None:
+            try:
+                service.discount = float(discount_raw)
+            except ValueError:
+                pass
+
+        is_sale_raw = request.form.get('is_sale')
+        if is_sale_raw is not None:
+            service.is_sale = is_sale_raw == 'true'
+
+        # Branch handling: 'all' or empty -> global (None)
+        branch_val = request.form.get('branch_id')
+        if branch_val is not None:
+            if branch_val in ('all', ''):
+                service.branch_id = None
+                # Ensure subsequent generic update loop doesn't reapply 'all'
+                data['branch_id'] = None
+            else:
+                service.branch_id = branch_val
+                data['branch_id'] = branch_val
+
+        # Other simple fields
+        for field in ['service_name', 'category', 'description', 'discount_type', 'duration', 'image']:
+            raw = request.form.get(field)
+            if raw is not None and raw != '':
+                if field == 'duration':
+                    try:
+                        service.duration = int(raw)
+                    except ValueError:
+                        pass
+                else:
+                    setattr(service, field, raw)
+
+        # Recalculate discounted_price if discount present
+        if service.discount is not None and service.price is not None:
+            if service.discount_type == 'percentage':
+                service.discounted_price = max(0, service.price - (service.price * service.discount / 100.0))
+            elif service.discount_type == 'fixed':
+                service.discounted_price = max(0, service.price - service.discount)
+        else:
+            service.discounted_price = service.price
+
+        db.session.commit()
+        return service
     
         
         
